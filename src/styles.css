@@ -46,62 +46,89 @@
 }
 
 :root {
-  --radius: 0.875rem;
-  --background: oklch(0.984 0.003 247.9);
-  --foreground: oklch(0.24 0.03 160);
+  --radius: 1rem;
+  --background: oklch(0.975 0.012 145);
+  --foreground: oklch(0.23 0.035 158);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.03 160);
+  --card-foreground: oklch(0.23 0.035 158);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.24 0.03 160);
-  --primary: oklch(0.36 0.08 155);
+  --popover-foreground: oklch(0.23 0.035 158);
+  --primary: oklch(0.34 0.085 153);
   --primary-foreground: oklch(0.99 0.005 150);
-  --primary-soft: oklch(0.95 0.03 150);
-  --leaf: oklch(0.62 0.15 148);
-  --gold: oklch(0.73 0.13 78);
-  --gold-foreground: oklch(0.25 0.04 70);
-  --secondary: oklch(0.95 0.02 150);
-  --secondary-foreground: oklch(0.32 0.07 155);
-  --muted: oklch(0.96 0.006 160);
-  --muted-foreground: oklch(0.52 0.02 160);
-  --accent: oklch(0.94 0.035 150);
-  --accent-foreground: oklch(0.32 0.07 155);
+  --primary-soft: oklch(0.94 0.035 150);
+  --leaf: oklch(0.55 0.14 149);
+  --gold: oklch(0.78 0.12 79);
+  --gold-foreground: oklch(0.29 0.045 69);
+  --secondary: oklch(0.95 0.025 147);
+  --secondary-foreground: oklch(0.31 0.07 153);
+  --muted: oklch(0.955 0.012 150);
+  --muted-foreground: oklch(0.49 0.025 158);
+  --accent: oklch(0.945 0.035 146);
+  --accent-foreground: oklch(0.3 0.07 153);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.92 0.01 160);
-  --input: oklch(0.92 0.01 160);
-  --ring: oklch(0.55 0.12 150);
+  --border: oklch(0.91 0.018 151);
+  --input: oklch(0.89 0.022 151);
+  --ring: oklch(0.53 0.12 150);
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.24 0.03 160);
-  --sidebar-primary: oklch(0.36 0.08 155);
+  --sidebar-foreground: oklch(0.23 0.035 158);
+  --sidebar-primary: oklch(0.34 0.085 153);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.95 0.02 150);
-  --sidebar-accent-foreground: oklch(0.32 0.07 155);
-  --sidebar-border: oklch(0.92 0.01 160);
-  --sidebar-ring: oklch(0.55 0.12 150);
+  --sidebar-accent: oklch(0.95 0.025 147);
+  --sidebar-accent-foreground: oklch(0.31 0.07 153);
+  --sidebar-border: oklch(0.91 0.018 151);
+  --sidebar-ring: oklch(0.53 0.12 150);
 
-  --gradient-hero: linear-gradient(160deg, oklch(0.42 0.1 152), oklch(0.3 0.07 158));
-  --shadow-card: 0 1px 2px oklch(0.3 0.05 160 / 6%), 0 8px 24px -12px oklch(0.3 0.06 160 / 18%);
+  --gradient-hero: linear-gradient(145deg, oklch(0.43 0.105 151), oklch(0.29 0.075 158));
+  --shadow-card: 0 2px 5px oklch(0.28 0.05 160 / 5%), 0 16px 36px -20px oklch(0.28 0.07 158 / 24%);
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
+  * {
+    border-color: var(--color-border);
+  }
   body {
     background-color: var(--color-background);
+    background-image:
+      radial-gradient(ellipse at 10% 4%, oklch(0.9 0.055 145 / 34%), transparent 35rem),
+      radial-gradient(ellipse at 96% 42%, oklch(0.92 0.045 82 / 18%), transparent 30rem);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 }
 
-@utility bg-hero { background-image: var(--gradient-hero); }
-@utility shadow-card { box-shadow: var(--shadow-card); }
-@utility hero-curve { clip-path: ellipse(120% 100% at 50% 0%); }
+@utility bg-hero {
+  background-image:
+    radial-gradient(ellipse at 82% 8%, oklch(0.72 0.1 145 / 22%), transparent 36%),
+    var(--gradient-hero);
+}
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+@utility hero-curve {
+  clip-path: ellipse(145% 100% at 50% 0%);
+}
+@utility login-backdrop {
+  background:
+    radial-gradient(ellipse at 14% 12%, oklch(0.9 0.06 145 / 42%), transparent 34rem),
+    radial-gradient(ellipse at 90% 84%, oklch(0.91 0.055 82 / 25%), transparent 30rem);
+}
 @utility field {
   width: 100%;
   border-radius: var(--radius);
   border: 1px solid var(--color-input);
-  background: var(--color-card);
+  background: oklch(1 0 0 / 82%);
   padding: 0.7rem 0.9rem;
   font-size: 0.95rem;
   outline: none;
-  &:focus { border-color: var(--color-ring); box-shadow: 0 0 0 3px oklch(0.55 0.12 150 / 18%); }
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+  &:focus {
+    border-color: var(--color-ring);
+    background: var(--color-card);
+    box-shadow: 0 0 0 4px oklch(0.55 0.12 150 / 14%);
+  }
 }
