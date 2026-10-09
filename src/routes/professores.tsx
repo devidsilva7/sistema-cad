@@ -26,7 +26,7 @@ function Professores() {
   const toggle = (t: string) => setTurmas((x) => (x.includes(t) ? x.filter((y) => y !== t) : [...x, t]));
   const salvar = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome || !disciplina) return toast.error("Preencha nome e disciplina.");
+    if (!nome || !disciplina) { toast.error("Preencha nome e disciplina."); return; }
     set((s) => ({ ...s, professores: [{ id: uid(), nome, disciplina, turmas, dt }, ...s.professores] }));
     setNome(""); setDisciplina(""); setTurmas([]); setDt(false);
     toast.success("Professor cadastrado.");

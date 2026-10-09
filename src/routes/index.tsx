@@ -22,11 +22,11 @@ function Login() {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
-  const [perfil, setPerfil] = useState(PERFIS[0]);
+  const [perfil, setPerfil] = useState(PERFIS[0]!);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!usuario || !senha) return toast.error("Informe usuário e senha.");
+    if (!usuario || !senha) { toast.error("Informe usuário e senha."); return; }
     set((s) => ({ ...s, user: { nome: usuario, perfil } }));
     navigate({ to: "/dashboard" });
   };
