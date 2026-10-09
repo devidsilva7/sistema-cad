@@ -10,33 +10,167 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgendaRouteImport } from './routes/agenda'
+import { Route as AlunosRouteImport } from './routes/alunos'
+import { Route as CardapioRouteImport } from './routes/cardapio'
+import { Route as ComunicadosRouteImport } from './routes/comunicados'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as NotificacoesRouteImport } from './routes/notificacoes'
+import { Route as OcorrenciasRouteImport } from './routes/ocorrencias'
+import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as ProfessoresRouteImport } from './routes/professores'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgendaRoute = AgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlunosRoute = AlunosRouteImport.update({
+  id: '/alunos',
+  path: '/alunos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CardapioRoute = CardapioRouteImport.update({
+  id: '/cardapio',
+  path: '/cardapio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComunicadosRoute = ComunicadosRouteImport.update({
+  id: '/comunicados',
+  path: '/comunicados',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificacoesRoute = NotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OcorrenciasRoute = OcorrenciasRouteImport.update({
+  id: '/ocorrencias',
+  path: '/ocorrencias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfessoresRoute = ProfessoresRouteImport.update({
+  id: '/professores',
+  path: '/professores',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/alunos': typeof AlunosRoute
+  '/cardapio': typeof CardapioRoute
+  '/comunicados': typeof ComunicadosRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/dashboard': typeof DashboardRoute
+  '/notificacoes': typeof NotificacoesRoute
+  '/ocorrencias': typeof OcorrenciasRoute
+  '/perfil': typeof PerfilRoute
+  '/professores': typeof ProfessoresRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/alunos': typeof AlunosRoute
+  '/cardapio': typeof CardapioRoute
+  '/comunicados': typeof ComunicadosRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/dashboard': typeof DashboardRoute
+  '/notificacoes': typeof NotificacoesRoute
+  '/ocorrencias': typeof OcorrenciasRoute
+  '/perfil': typeof PerfilRoute
+  '/professores': typeof ProfessoresRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/alunos': typeof AlunosRoute
+  '/cardapio': typeof CardapioRoute
+  '/comunicados': typeof ComunicadosRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/dashboard': typeof DashboardRoute
+  '/notificacoes': typeof NotificacoesRoute
+  '/ocorrencias': typeof OcorrenciasRoute
+  '/perfil': typeof PerfilRoute
+  '/professores': typeof ProfessoresRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/agenda'
+    | '/alunos'
+    | '/cardapio'
+    | '/comunicados'
+    | '/configuracoes'
+    | '/dashboard'
+    | '/notificacoes'
+    | '/ocorrencias'
+    | '/perfil'
+    | '/professores'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/agenda'
+    | '/alunos'
+    | '/cardapio'
+    | '/comunicados'
+    | '/configuracoes'
+    | '/dashboard'
+    | '/notificacoes'
+    | '/ocorrencias'
+    | '/perfil'
+    | '/professores'
+  id:
+    | '__root__'
+    | '/'
+    | '/agenda'
+    | '/alunos'
+    | '/cardapio'
+    | '/comunicados'
+    | '/configuracoes'
+    | '/dashboard'
+    | '/notificacoes'
+    | '/ocorrencias'
+    | '/perfil'
+    | '/professores'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgendaRoute: typeof AgendaRoute
+  AlunosRoute: typeof AlunosRoute
+  CardapioRoute: typeof CardapioRoute
+  ComunicadosRoute: typeof ComunicadosRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  DashboardRoute: typeof DashboardRoute
+  NotificacoesRoute: typeof NotificacoesRoute
+  OcorrenciasRoute: typeof OcorrenciasRoute
+  PerfilRoute: typeof PerfilRoute
+  ProfessoresRoute: typeof ProfessoresRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +182,91 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agenda': {
+      id: '/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AgendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alunos': {
+      id: '/alunos'
+      path: '/alunos'
+      fullPath: '/alunos'
+      preLoaderRoute: typeof AlunosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cardapio': {
+      id: '/cardapio'
+      path: '/cardapio'
+      fullPath: '/cardapio'
+      preLoaderRoute: typeof CardapioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comunicados': {
+      id: '/comunicados'
+      path: '/comunicados'
+      fullPath: '/comunicados'
+      preLoaderRoute: typeof ComunicadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notificacoes': {
+      id: '/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/notificacoes'
+      preLoaderRoute: typeof NotificacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ocorrencias': {
+      id: '/ocorrencias'
+      path: '/ocorrencias'
+      fullPath: '/ocorrencias'
+      preLoaderRoute: typeof OcorrenciasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/professores': {
+      id: '/professores'
+      path: '/professores'
+      fullPath: '/professores'
+      preLoaderRoute: typeof ProfessoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgendaRoute: AgendaRoute,
+  AlunosRoute: AlunosRoute,
+  CardapioRoute: CardapioRoute,
+  ComunicadosRoute: ComunicadosRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
+  DashboardRoute: DashboardRoute,
+  NotificacoesRoute: NotificacoesRoute,
+  OcorrenciasRoute: OcorrenciasRoute,
+  PerfilRoute: PerfilRoute,
+  ProfessoresRoute: ProfessoresRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
