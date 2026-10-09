@@ -23,11 +23,11 @@ function Comunicados() {
   const { comunicados, set } = useStore();
   const [titulo, setTitulo] = useState("");
   const [mensagem, setMensagem] = useState("");
-  const [publico, setPublico] = useState(PUBLICOS[0]);
+  const [publico, setPublico] = useState(PUBLICOS[0]!);
 
   const enviar = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!titulo || !mensagem) return toast.error("Preencha título e mensagem.");
+    if (!titulo || !mensagem) { toast.error("Preencha título e mensagem."); return; }
     set((s) => ({ ...s, comunicados: [{ id: uid(), titulo, mensagem, publico, data: new Date().toISOString() }, ...s.comunicados] }));
     setTitulo(""); setMensagem("");
     toast.success("Comunicado enviado", { description: `Público: ${publico}` });

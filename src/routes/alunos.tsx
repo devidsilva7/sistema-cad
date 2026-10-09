@@ -17,7 +17,7 @@ export const Route = createFileRoute("/alunos")({
   component: Alunos,
 });
 
-const empty = { nome: "", turma: TURMAS[0], matricula: "", responsavel: "", whatsapp: "" };
+const empty = { nome: "", turma: TURMAS[0]!, matricula: "", responsavel: "", whatsapp: "" };
 
 function Alunos() {
   const { alunos, set } = useStore();
@@ -27,7 +27,7 @@ function Alunos() {
 
   const salvar = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!f.nome || !f.matricula) return toast.error("Preencha nome e matrícula.");
+    if (!f.nome || !f.matricula) { toast.error("Preencha nome e matrícula."); return; }
     set((s) => ({ ...s, alunos: [{ id: uid(), ...f }, ...s.alunos] }));
     setF(empty);
     toast.success("Aluno cadastrado.");

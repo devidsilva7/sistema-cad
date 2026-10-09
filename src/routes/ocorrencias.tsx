@@ -22,16 +22,16 @@ const TEMPLATES = ["Sem fardamento adequado", "Uso indevido do celular", "Conver
 
 function Ocorrencias() {
   const { alunos, set } = useStore();
-  const [turma, setTurma] = useState(TURMAS[0]);
+  const [turma, setTurma] = useState(TURMAS[0]!);
   const [alunoId, setAlunoId] = useState("");
-  const [tipo, setTipo] = useState(TIPOS[0]);
+  const [tipo, setTipo] = useState(TIPOS[0]!);
   const [obs, setObs] = useState("");
   const [sending, setSending] = useState(false);
   const daTurma = alunos.filter((a) => a.turma === turma);
 
   const enviar = () => {
     const aluno = alunos.find((a) => a.id === alunoId);
-    if (!aluno) return toast.error("Selecione um aluno.");
+    if (!aluno) { toast.error("Selecione um aluno."); return; }
     setSending(true);
     setTimeout(() => {
       set((s) => ({ ...s, ocorrencias: [{ id: uid(), alunoId, turma, tipo, obs, data: new Date().toISOString() }, ...s.ocorrencias] }));
