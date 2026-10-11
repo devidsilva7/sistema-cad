@@ -28,11 +28,17 @@ const PUBLICOS = ["Todos", "Responsáveis", "Professores", "Alunos"];
 function Comunicados() {
   const { comunicados, set, user } = useStore();
   const isAluno = user?.perfil === "Aluno";
+  const isResponsavel = user?.perfil === "Responsável";
+  const somenteLeitura = isAluno || isResponsavel;
   const comunicadosVisiveis = isAluno
     ? comunicados.filter(
         (comunicado) => comunicado.publico === "Todos" || comunicado.publico === "Alunos",
       )
-    : comunicados;
+    : isResponsavel
+      ? comunicados.filter(
+          (comunicado) => comunicado.publico === "Todos" || comunicado.publico === "Responsáveis",
+        )
+      : comunicados;
   const [titulo, setTitulo] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [publico, setPublico] = useState(PUBLICOS[0]!);
@@ -57,7 +63,7 @@ function Comunicados() {
 
   return (
     <PageShell title="Comunicados Gerais" subtitle="Direção → comunidade escolar">
-      {!isAluno && (
+      {!somenteLeitura && (
         <Card>
           <form onSubmit={enviar} className="space-y-3">
             <div>

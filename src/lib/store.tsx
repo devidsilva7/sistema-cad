@@ -12,8 +12,16 @@ export type Aluno = {
   turma: string;
   matricula: string;
   responsavel: string;
-  responsavelEmail?: string;
+   responsavelEmail?: string;
   whatsapp: string;
+  responsavelId?: string | undefined;
+};
+export type Responsavel = {
+  id: string;
+  nome: string;
+  email: string;
+  whatsapp: string;
+  parentesco: string;
 };
 export type Professor = {
   id: string;
@@ -40,7 +48,13 @@ export type Comunicado = {
 };
 export type Dia = "Segunda" | "Terça" | "Quarta" | "Quinta" | "Sexta";
 export type Refeicoes = { manha: string; almoco: string; tarde: string };
-export const PERFIS = ["Administrador", "Professor", "Diretor de Turma", "Aluno"] as const;
+export const PERFIS = [
+  "Administrador",
+  "Professor",
+  "Diretor de Turma",
+  "Aluno",
+  "Responsável",
+] as const;
 export type Perfil = (typeof PERFIS)[number];
 export type User = { nome: string; perfil: Perfil; localAccountId?: string };
 
@@ -53,7 +67,13 @@ export const TURMAS = [
   "3º Enfermagem",
 ];
 export const DIAS: Dia[] = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
-export const ADMIN_ONLY_ROUTES = ["/alunos", "/professores", "/configuracoes"] as const;
+export const PARENTESCOS = ["Mãe", "Pai", "Avó/Avô", "Tio/Tia", "Outro"];
+export const ADMIN_ONLY_ROUTES = [
+  "/alunos",
+  "/professores",
+  "/responsaveis",
+  "/configuracoes",
+] as const;
 export const STAFF_ROUTES = [
   "/dashboard",
   "/agenda",
@@ -71,10 +91,22 @@ export const ALUNO_ALLOWED_ROUTES = [
   "/perfil",
 ] as const;
 
+export const RESPONSAVEL_ALLOWED_ROUTES = [
+  "/dashboard",
+  "/agenda",
+  "/cardapio",
+  "/comunicados",
+  "/notificacoes",
+  "/perfil",
+] as const;
+
 export function canAccessRoute(perfil: string | undefined, pathname: string) {
   if (perfil === "Administrador") return true;
   if (ADMIN_ONLY_ROUTES.some((route) => route === pathname)) return false;
-  if (perfil === "Aluno") return ALUNO_ALLOWED_ROUTES.some((route) => route === pathname);
+   if (perfil === "Aluno") return ALUNO_ALLOWED_ROUTES.some((route) => route === pathname);
+  if (perfil === "Responsável") {
+    return RESPONSAVEL_ALLOWED_ROUTES.some((route) => route === pathname);
+  }
   if (perfil === "Professor" || perfil === "Diretor de Turma") {
     return STAFF_ROUTES.some((route) => route === pathname);
   }
@@ -83,7 +115,8 @@ export function canAccessRoute(perfil: string | undefined, pathname: string) {
 
 const seed = {
   alunos: [] as Aluno[],
-  professores: [] as Professor[],
+     professores: [] as Professor[],
+  responsaveis: [] as Responsavel[],
   accounts: [] as LocalAccount[],
   ocorrencias: [] as Ocorrencia[],
   comunicados: [] as Comunicado[],

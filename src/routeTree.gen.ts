@@ -20,6 +20,7 @@ import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as OcorrenciasRouteImport } from './routes/ocorrencias'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ProfessoresRouteImport } from './routes/professores'
+import { Route as ResponsaveisRouteImport } from './routes/responsaveis'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +77,11 @@ const ProfessoresRoute = ProfessoresRouteImport.update({
   path: '/professores',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResponsaveisRoute = ResponsaveisRouteImport.update({
+  id: '/responsaveis',
+  path: '/responsaveis',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/ocorrencias': typeof OcorrenciasRoute
   '/perfil': typeof PerfilRoute
   '/professores': typeof ProfessoresRoute
+  '/responsaveis': typeof ResponsaveisRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/ocorrencias': typeof OcorrenciasRoute
   '/perfil': typeof PerfilRoute
   '/professores': typeof ProfessoresRoute
+  '/responsaveis': typeof ResponsaveisRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/ocorrencias': typeof OcorrenciasRoute
   '/perfil': typeof PerfilRoute
   '/professores': typeof ProfessoresRoute
+  '/responsaveis': typeof ResponsaveisRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/perfil'
     | '/professores'
+    | '/responsaveis'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/perfil'
     | '/professores'
+    | '/responsaveis'
   id:
     | '__root__'
     | '/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/perfil'
     | '/professores'
+    | '/responsaveis'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +183,7 @@ export interface RootRouteChildren {
   OcorrenciasRoute: typeof OcorrenciasRoute
   PerfilRoute: typeof PerfilRoute
   ProfessoresRoute: typeof ProfessoresRoute
+  ResponsaveisRoute: typeof ResponsaveisRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfessoresRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/responsaveis': {
+      id: '/responsaveis'
+      path: '/responsaveis'
+      fullPath: '/responsaveis'
+      preLoaderRoute: typeof ResponsaveisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -267,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   OcorrenciasRoute: OcorrenciasRoute,
   PerfilRoute: PerfilRoute,
   ProfessoresRoute: ProfessoresRoute,
+  ResponsaveisRoute: ResponsaveisRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

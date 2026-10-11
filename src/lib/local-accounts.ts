@@ -1,4 +1,4 @@
-export type LocalAccountProfile = "Professor" | "Diretor de Turma" | "Aluno";
+export type LocalAccountProfile = "Professor" | "Diretor de Turma" | "Aluno" | "Responsável";
 
 export type LocalAccount = {
   id: string;
@@ -18,7 +18,7 @@ function toHex(bytes: Uint8Array) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function hashPassword(password: string, salt: Uint8Array) {
+async function hashPassword(password: string, salt: Uint8Array<ArrayBuffer>) {
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),

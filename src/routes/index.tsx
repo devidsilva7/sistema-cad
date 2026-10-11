@@ -139,7 +139,7 @@ function Login() {
   };
 
   return (
-    <div className="login-backdrop flex min-h-screen flex-col overflow-x-hidden">
+    <div className="login-backdrop flex min-h-dvh flex-col overflow-x-clip">
       <div className="bg-hero hero-curve h-56 w-full shadow-[0_18px_50px_-35px_oklch(0.2_0.06_155_/_65%)]" />
       <div className="mx-auto -mt-40 w-full max-w-sm px-4 pb-10 sm:px-5">
         <div className="rounded-[1.75rem] border border-white/75 bg-card/95 p-5 shadow-[0_24px_70px_-32px_oklch(0.2_0.06_155_/_38%)] backdrop-blur-xl sm:p-6">
@@ -272,7 +272,7 @@ function Login() {
           </form>
         </div>
         <p className="mt-6 text-center text-[11px] leading-relaxed text-muted-foreground">
-          Contas locais de alunos e professores são apenas para teste neste navegador.
+          Contas de alunos, professores e responsáveis ficam salvas apenas neste navegador (modo de teste).Contas locais de alunos e professores são apenas para teste neste navegador.
         </p>
       </div>
     </div>

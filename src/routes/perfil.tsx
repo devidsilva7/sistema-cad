@@ -1,9 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { UserRound } from "lucide-react";
-import { logoutAdmin } from "@/lib/admin-auth";
-import { Card, PageShell } from "@/components/AppShell";
+import { Card, PageShell, useLogout } from "@/components/AppShell";
 import { useStore } from "@/lib/store";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({
@@ -18,18 +16,8 @@ export const Route = createFileRoute("/perfil")({
 });
 
 function Perfil() {
-  const { user, set } = useStore();
-  const navigate = useNavigate();
-  const sair = async () => {
-    try {
-      await logoutAdmin();
-      set((s) => ({ ...s, user: null }));
-      await navigate({ to: "/", replace: true });
-    } catch (error) {
-      console.error("Falha ao encerrar a sessão do administrador.", error);
-      toast.error("Não foi possível encerrar a sessão.");
-    }
-  };
+  const { user } = useStore();
+  const sair = useLogout();
   return (
     <PageShell title="Perfil" subtitle="Sua conta">
       <Card className="flex flex-col items-center py-8 text-center">

@@ -35,4 +35,33 @@ describe("role-based route access", () => {
       expect(canAccessRoute(perfil, "/configuracoes")).toBe(false);
     }
   });
+  
+  it("gives guardians a read-only view and blocks the registration screens", () => {
+    for (const rota of [
+      "/dashboard",
+      "/agenda",
+      "/cardapio",
+      "/comunicados",
+      "/notificacoes",
+      "/perfil",
+    ]) {
+      expect(canAccessRoute("Responsável", rota)).toBe(true);
+    }
+    for (const rota of [
+      "/alunos",
+      "/professores",
+      "/responsaveis",
+      "/configuracoes",
+      "/ocorrencias",
+    ]) {
+      expect(canAccessRoute("Responsável", rota)).toBe(false);
+    }
+  });
+
+  it("keeps the guardian registration screen for the administrator only", () => {
+    expect(canAccessRoute("Administrador", "/responsaveis")).toBe(true);
+    for (const perfil of ["Professor", "Diretor de Turma", "Aluno"]) {
+      expect(canAccessRoute(perfil, "/responsaveis")).toBe(false);
+    }
+  });
 });
