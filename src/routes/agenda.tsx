@@ -27,7 +27,10 @@ function Agenda() {
         {EVENTOS.map((e) => (
           <Card key={e.t} className="flex items-center gap-4 !p-3">
             <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-primary text-center text-primary-foreground">
-              <div><p className="text-lg font-extrabold leading-none">{e.d}</p><p className="text-[10px] font-bold text-gold">{e.m}</p></div>
+              <div>
+                <p className="text-lg font-extrabold leading-none">{e.d}</p>
+                <p className="text-[10px] font-bold text-gold">{e.m}</p>
+              </div>
             </div>
             <p className="font-semibold">{e.t}</p>
           </Card>

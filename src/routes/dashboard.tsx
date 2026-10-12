@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import {
   Bell,
   CalendarDays,
+  Clock3,
+  FlaskConical,
   GraduationCap,
   HeartHandshake,
   Megaphone,
@@ -42,6 +44,13 @@ const GRUPOS: { titulo: string; itens: Modulo[] }[] = [
       { to: "/ocorrencias", label: "Ocorrências", desc: "Registro rápido", icon: Megaphone },
       { to: "/cardapio", label: "Cardápio", desc: "Merenda da semana", icon: UtensilsCrossed },
       { to: "/comunicados", label: "Comunicados", desc: "Avisos da direção", icon: Bell },
+      { to: "/horarios", label: "Horários", desc: "Grade semanal de aulas", icon: Clock3 },
+      {
+        to: "/agendamento-ambientes",
+        label: "Ambientes",
+        desc: "Laboratórios e espaços",
+        icon: FlaskConical,
+      },
     ],
   },
   {
@@ -69,7 +78,7 @@ function Dashboard() {
   if (!authReady || !user) return null;
 
   const isAdmin = user.perfil === "Administrador";
-  const isStaff = user.perfil === "Professor" || user.perfil === "Diretor de Turma";
+  const isStaff = canAccessRoute(user.perfil, "/ocorrencias");
   const grupos = GRUPOS.map((g) => ({
     ...g,
     itens: g.itens.filter(({ to }) => canAccessRoute(user.perfil, to)),
@@ -163,8 +172,8 @@ function Dashboard() {
                 <p className="text-xs text-muted-foreground">Ocorrências registradas</p>
                 <p className="text-2xl font-extrabold text-primary">{ocorrencias.length}</p>
               </div>
-              <Link to="/notificacoes" className="text-sm font-semibold text-leaf">
-                Ver histórico →
+              <Link to="/ocorrencias" className="text-sm font-semibold text-leaf">
+                Ver ocorrências →
               </Link>
             </div>
             <div className="flex items-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground shadow-card">

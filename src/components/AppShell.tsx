@@ -3,6 +3,8 @@ import {
   Bell,
   CalendarDays,
   ClipboardList,
+  Clock3,
+  FlaskConical,
   GraduationCap,
   HeartHandshake,
   Home,
@@ -54,6 +56,8 @@ const MENU_SECTIONS: { title: string; items: MenuItem[] }[] = [
       { to: "/ocorrencias", label: "Ocorrências Rápidas", icon: ClipboardList },
       { to: "/cardapio", label: "Cardápio Escolar", icon: UtensilsCrossed },
       { to: "/comunicados", label: "Comunicados Gerais", icon: Megaphone },
+      { to: "/horarios", label: "Horários Escolares", icon: Clock3 },
+      { to: "/agendamento-ambientes", label: "Agendamento de Ambientes", icon: FlaskConical },
     ],
   },
   {
@@ -73,9 +77,8 @@ export function useLogout() {
   const navigate = useNavigate();
   return async () => {
     try {
-      if (user?.localAccountId) {
-        clearLocalAccountSession();
-      } else {
+      clearLocalAccountSession();
+      if (!user?.localAccountId) {
         await logoutAdmin();
       }
       set((s) => ({ ...s, user: null }));
@@ -197,11 +200,12 @@ export function MenuDrawer() {
 
 export function BottomBar() {
   const { user } = useStore();
-  const items = NAV.filter(({ to }) => user?.perfil !== "Aluno" || to !== "/notificacoes");
+  const items = NAV.filter(({ to }) => canAccessRoute(user?.perfil, to));
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-card/90 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_-22px_oklch(0.25_0.05_155_/_40%)] backdrop-blur-xl md:bottom-auto md:top-0 md:border-b md:border-t-0 md:pb-0 md:shadow-[0_8px_30px_-22px_oklch(0.25_0.05_155_/_40%)]">
       <div
-        className={`mx-auto grid max-w-6xl ${items.length === 3 ? "grid-cols-3" : "grid-cols-4"}`}
+        className="mx-auto grid max-w-6xl"
+        style={{ gridTemplateColumns: `repeat(${Math.max(items.length, 1)}, minmax(0, 1fr))` }}
       >
         {items.map(({ to, label, icon: Icon }) => (
           <Link

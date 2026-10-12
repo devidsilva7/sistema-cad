@@ -14,4 +14,12 @@ describe("App routing", () => {
 
     expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);
   });
+
+  it("registers the timetable and school-space booking routes", () => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+    expect(router.matchRoutes("/horarios").at(-1)?.routeId).toBe("/horarios");
+    expect(router.matchRoutes("/agendamento-ambientes").at(-1)?.routeId).toBe(
+      "/agendamento-ambientes",
+    );
+  });
 });

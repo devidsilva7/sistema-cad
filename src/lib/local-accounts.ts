@@ -1,4 +1,5 @@
-export type LocalAccountProfile = "Professor" | "Diretor de Turma" | "Aluno" | "Responsável";
+export type LocalAccountProfile =
+  "Professor" | "Diretor de Turma" | "Diretor" | "Coordenador" | "Aluno" | "Responsável";
 
 export type LocalAccount = {
   id: string;
@@ -65,19 +66,18 @@ export async function authenticateLocalAccount(
   email: string,
   username: string,
   password: string,
-  perfil: LocalAccountProfile,
+  perfil?: LocalAccountProfile,
 ) {
   const account = accounts.find(
     (entry) =>
       entry.email === email.trim().toLowerCase() &&
       entry.username === username.trim().toLowerCase() &&
-      entry.perfil === perfil,
+      (perfil === undefined || entry.perfil === perfil),
   );
   if (!account) return null;
 
-  const salt = Uint8Array.from(
-    account.passwordSalt.match(/.{2}/g) ?? [],
-    (byte) => Number.parseInt(byte, 16),
+  const salt = Uint8Array.from(account.passwordSalt.match(/.{2}/g) ?? [], (byte) =>
+    Number.parseInt(byte, 16),
   );
   const candidateHash = await hashPassword(password, salt);
   return candidateHash === account.passwordHash ? account : null;

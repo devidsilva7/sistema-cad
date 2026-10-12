@@ -12,7 +12,7 @@ export type Aluno = {
   turma: string;
   matricula: string;
   responsavel: string;
-   responsavelEmail?: string;
+  responsavelEmail?: string;
   whatsapp: string;
   responsavelId?: string | undefined;
 };
@@ -38,6 +38,23 @@ export type Ocorrencia = {
   tipo: string;
   obs: string;
   data: string;
+  registradoPor?: string;
+};
+export type AulaHorario = {
+  id: string;
+  dia: Dia;
+  periodo: number;
+  turma: string;
+  disciplina: string;
+  professorEmail: string;
+};
+export type ReservaAmbiente = {
+  id: string;
+  ambiente: string;
+  dia: Dia;
+  periodo: number;
+  solicitante: string;
+  solicitanteEmail: string;
 };
 export type Comunicado = {
   id: string;
@@ -50,6 +67,8 @@ export type Dia = "Segunda" | "Terça" | "Quarta" | "Quinta" | "Sexta";
 export type Refeicoes = { manha: string; almoco: string; tarde: string };
 export const PERFIS = [
   "Administrador",
+  "Diretor",
+  "Coordenador",
   "Professor",
   "Diretor de Turma",
   "Aluno",
@@ -68,21 +87,33 @@ export const TURMAS = [
 ];
 export const DIAS: Dia[] = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
 export const PARENTESCOS = ["Mãe", "Pai", "Avó/Avô", "Tio/Tia", "Outro"];
-export const ADMIN_ONLY_ROUTES = [
-  "/alunos",
-  "/professores",
-  "/responsaveis",
-  "/configuracoes",
-] as const;
+export const ADMIN_ONLY_ROUTES = ["/alunos", "/responsaveis", "/configuracoes"] as const;
 export const STAFF_ROUTES = [
   "/dashboard",
   "/agenda",
   "/ocorrencias",
   "/cardapio",
   "/comunicados",
-  "/notificacoes",
+  "/horarios",
+  "/agendamento-ambientes",
   "/perfil",
 ] as const;
+export const MANAGEMENT_ROUTES = [
+  "/dashboard",
+  "/ocorrencias",
+  "/professores",
+  "/cardapio",
+  "/horarios",
+  "/agendamento-ambientes",
+  "/perfil",
+] as const;
+export const COORDINATOR_ROUTES = [
+  ...MANAGEMENT_ROUTES,
+  "/agenda",
+  "/comunicados",
+  "/notificacoes",
+] as const;
+export const TEACHER_ROUTES = [...STAFF_ROUTES, "/alunos", "/responsaveis"] as const;
 export const ALUNO_ALLOWED_ROUTES = [
   "/dashboard",
   "/agenda",
@@ -102,23 +133,27 @@ export const RESPONSAVEL_ALLOWED_ROUTES = [
 
 export function canAccessRoute(perfil: string | undefined, pathname: string) {
   if (perfil === "Administrador") return true;
-  if (ADMIN_ONLY_ROUTES.some((route) => route === pathname)) return false;
-   if (perfil === "Aluno") return ALUNO_ALLOWED_ROUTES.some((route) => route === pathname);
+  if (perfil === "Diretor") return MANAGEMENT_ROUTES.some((route) => route === pathname);
+  if (perfil === "Coordenador") return COORDINATOR_ROUTES.some((route) => route === pathname);
+  if (perfil === "Aluno") return ALUNO_ALLOWED_ROUTES.some((route) => route === pathname);
   if (perfil === "Responsável") {
     return RESPONSAVEL_ALLOWED_ROUTES.some((route) => route === pathname);
   }
   if (perfil === "Professor" || perfil === "Diretor de Turma") {
-    return STAFF_ROUTES.some((route) => route === pathname);
+    return TEACHER_ROUTES.some((route) => route === pathname);
   }
+  if (ADMIN_ONLY_ROUTES.some((route) => route === pathname)) return false;
   return false;
 }
 
 const seed = {
   alunos: [] as Aluno[],
-     professores: [] as Professor[],
+  professores: [] as Professor[],
   responsaveis: [] as Responsavel[],
   accounts: [] as LocalAccount[],
   ocorrencias: [] as Ocorrencia[],
+  aulasHorario: [] as AulaHorario[],
+  reservasAmbientes: [] as ReservaAmbiente[],
   comunicados: [] as Comunicado[],
   cardapio: {
     Segunda: {

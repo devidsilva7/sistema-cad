@@ -13,11 +13,7 @@ export default defineConfig({
       name: "load-server-secrets",
       enforce: "pre",
       config(_config, { mode }) {
-        for (const key of [
-          "ADMIN_EMAIL",
-          "ADMIN_PASSWORD",
-          "SESSION_SECRET",
-        ] as const) {
+        for (const key of ["ADMIN_EMAIL", "ADMIN_PASSWORD", "SESSION_SECRET"] as const) {
           if (!process.env[key]?.trim()) delete process.env[key];
         }
         const env = loadEnv(mode, process.cwd(), "");

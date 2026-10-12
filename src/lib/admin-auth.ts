@@ -65,9 +65,7 @@ export const loginAdmin = createServerFn({ method: "POST" })
       return { authenticated: false };
     }
 
-    const session = await useSession<{ isAdmin: boolean; displayName: string }>(
-      getSessionConfig(),
-    );
+    const session = await useSession<{ isAdmin: boolean; displayName: string }>(getSessionConfig());
     await session.update({ isAdmin: true, displayName: data.displayName });
     return { authenticated: true };
   });

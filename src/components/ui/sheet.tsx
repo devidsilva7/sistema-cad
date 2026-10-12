@@ -52,7 +52,7 @@ const sheetVariants = cva(
 interface SheetContentProps
   extends
     React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-        VariantProps<typeof sheetVariants> {
+    VariantProps<typeof sheetVariants> {
   hideClose?: boolean;
 }
 
@@ -63,7 +63,7 @@ const SheetContent = React.forwardRef<
   <SheetPortal>
     <SheetOverlay />
     <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-           <SheetPrimitive.Close className="absolute right-4 top-4 ...">
+      <SheetPrimitive.Close className="absolute right-4 top-4 ...">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </SheetPrimitive.Close>

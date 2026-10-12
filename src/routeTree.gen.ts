@@ -11,11 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgendaRouteImport } from './routes/agenda'
+import { Route as AgendamentoAmbientesRouteImport } from './routes/agendamento-ambientes'
 import { Route as AlunosRouteImport } from './routes/alunos'
 import { Route as CardapioRouteImport } from './routes/cardapio'
 import { Route as ComunicadosRouteImport } from './routes/comunicados'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as HorariosRouteImport } from './routes/horarios'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as OcorrenciasRouteImport } from './routes/ocorrencias'
 import { Route as PerfilRouteImport } from './routes/perfil'
@@ -30,6 +32,11 @@ const IndexRoute = IndexRouteImport.update({
 const AgendaRoute = AgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendamentoAmbientesRoute = AgendamentoAmbientesRouteImport.update({
+  id: '/agendamento-ambientes',
+  path: '/agendamento-ambientes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlunosRoute = AlunosRouteImport.update({
@@ -55,6 +62,11 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HorariosRoute = HorariosRouteImport.update({
+  id: '/horarios',
+  path: '/horarios',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificacoesRoute = NotificacoesRouteImport.update({
@@ -86,11 +98,13 @@ const ResponsaveisRoute = ResponsaveisRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
+  '/agendamento-ambientes': typeof AgendamentoAmbientesRoute
   '/alunos': typeof AlunosRoute
   '/cardapio': typeof CardapioRoute
   '/comunicados': typeof ComunicadosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/dashboard': typeof DashboardRoute
+  '/horarios': typeof HorariosRoute
   '/notificacoes': typeof NotificacoesRoute
   '/ocorrencias': typeof OcorrenciasRoute
   '/perfil': typeof PerfilRoute
@@ -100,11 +114,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
+  '/agendamento-ambientes': typeof AgendamentoAmbientesRoute
   '/alunos': typeof AlunosRoute
   '/cardapio': typeof CardapioRoute
   '/comunicados': typeof ComunicadosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/dashboard': typeof DashboardRoute
+  '/horarios': typeof HorariosRoute
   '/notificacoes': typeof NotificacoesRoute
   '/ocorrencias': typeof OcorrenciasRoute
   '/perfil': typeof PerfilRoute
@@ -115,11 +131,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
+  '/agendamento-ambientes': typeof AgendamentoAmbientesRoute
   '/alunos': typeof AlunosRoute
   '/cardapio': typeof CardapioRoute
   '/comunicados': typeof ComunicadosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/dashboard': typeof DashboardRoute
+  '/horarios': typeof HorariosRoute
   '/notificacoes': typeof NotificacoesRoute
   '/ocorrencias': typeof OcorrenciasRoute
   '/perfil': typeof PerfilRoute
@@ -131,11 +149,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agenda'
+    | '/agendamento-ambientes'
     | '/alunos'
     | '/cardapio'
     | '/comunicados'
     | '/configuracoes'
     | '/dashboard'
+    | '/horarios'
     | '/notificacoes'
     | '/ocorrencias'
     | '/perfil'
@@ -145,11 +165,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agenda'
+    | '/agendamento-ambientes'
     | '/alunos'
     | '/cardapio'
     | '/comunicados'
     | '/configuracoes'
     | '/dashboard'
+    | '/horarios'
     | '/notificacoes'
     | '/ocorrencias'
     | '/perfil'
@@ -159,11 +181,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agenda'
+    | '/agendamento-ambientes'
     | '/alunos'
     | '/cardapio'
     | '/comunicados'
     | '/configuracoes'
     | '/dashboard'
+    | '/horarios'
     | '/notificacoes'
     | '/ocorrencias'
     | '/perfil'
@@ -174,11 +198,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgendaRoute: typeof AgendaRoute
+  AgendamentoAmbientesRoute: typeof AgendamentoAmbientesRoute
   AlunosRoute: typeof AlunosRoute
   CardapioRoute: typeof CardapioRoute
   ComunicadosRoute: typeof ComunicadosRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   DashboardRoute: typeof DashboardRoute
+  HorariosRoute: typeof HorariosRoute
   NotificacoesRoute: typeof NotificacoesRoute
   OcorrenciasRoute: typeof OcorrenciasRoute
   PerfilRoute: typeof PerfilRoute
@@ -200,6 +226,13 @@ declare module '@tanstack/react-router' {
       path: '/agenda'
       fullPath: '/agenda'
       preLoaderRoute: typeof AgendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agendamento-ambientes': {
+      id: '/agendamento-ambientes'
+      path: '/agendamento-ambientes'
+      fullPath: '/agendamento-ambientes'
+      preLoaderRoute: typeof AgendamentoAmbientesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alunos': {
@@ -235,6 +268,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/horarios': {
+      id: '/horarios'
+      path: '/horarios'
+      fullPath: '/horarios'
+      preLoaderRoute: typeof HorariosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notificacoes': {
@@ -278,11 +318,13 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgendaRoute: AgendaRoute,
+  AgendamentoAmbientesRoute: AgendamentoAmbientesRoute,
   AlunosRoute: AlunosRoute,
   CardapioRoute: CardapioRoute,
   ComunicadosRoute: ComunicadosRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   DashboardRoute: DashboardRoute,
+  HorariosRoute: HorariosRoute,
   NotificacoesRoute: NotificacoesRoute,
   OcorrenciasRoute: OcorrenciasRoute,
   PerfilRoute: PerfilRoute,

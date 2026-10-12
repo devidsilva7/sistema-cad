@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { loginAdmin } from "@/lib/admin-auth";
 import {
   authenticateLocalAccount,
+  clearLocalAccountSession,
   setLocalAccountSession,
   updateLocalAccountPassword,
   type LocalAccount,
@@ -35,7 +36,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [senha, setSenha] = useState("");
-  const [perfil, setPerfil] = useState<Perfil>(PERFIS[0]);
+  const [perfil, setPerfil] = useState<Perfil | "auto">("auto");
   const [pendingAccount, setPendingAccount] = useState<LocalAccount | null>(null);
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
@@ -98,6 +99,7 @@ function Login() {
           toast.error("E-mail ou senha do administrador incorretos.");
           return;
         }
+        clearLocalAccountSession();
         set((current) => ({
           ...current,
           user: {
@@ -105,33 +107,53 @@ function Login() {
             perfil: "Administrador",
           },
         }));
-      } else {
-        const account = await authenticateLocalAccount(
-          accounts,
-          email,
-          username,
-          senha,
-          perfil,
-        );
-        if (!account) {
-          toast.error("E-mail, senha ou perfil incorretos.");
-          return;
-        }
-        if (account.mustChangePassword) {
-          setPendingAccount(account);
-          setSenha("");
-          toast.info("Crie sua senha pessoal para continuar.");
-          return;
-        }
-        setLocalAccountSession(account.id);
-        set((current) => ({
-          ...current,
-          user: { nome: account.nome, perfil: account.perfil, localAccountId: account.id },
-        }));
+        await navigate({ to: "/dashboard" });
+        return;
       }
+
+      const perfilSelecionado = perfil === "auto" ? undefined : perfil;
+      const account = await authenticateLocalAccount(
+        accounts,
+        email,
+        username,
+        senha,
+        perfilSelecionado,
+      );
+      if (account?.mustChangePassword) {
+        setPendingAccount(account);
+        setSenha("");
+        toast.info("Crie sua senha pessoal para continuar.");
+        return;
+      }
+      if (!account && perfil === "auto" && senha.length <= 8) {
+        const result = await loginAdmin({
+          data: { email, displayName: username.trim() || "Administrador", password: senha },
+        });
+        if (result.authenticated) {
+          clearLocalAccountSession();
+          set((current) => ({
+            ...current,
+            user: {
+              nome: username.trim() || "Administrador",
+              perfil: "Administrador",
+            },
+          }));
+          await navigate({ to: "/dashboard" });
+          return;
+        }
+      }
+      if (!account) {
+        toast.error("E-mail, usuário ou senha incorretos. Confira também o perfil selecionado.");
+        return;
+      }
+      setLocalAccountSession(account.id);
+      set((current) => ({
+        ...current,
+        user: { nome: account.nome, perfil: account.perfil, localAccountId: account.id },
+      }));
       await navigate({ to: "/dashboard" });
     } catch (error) {
-      console.error("Falha ao autenticar o administrador.", error);
+      console.error("Falha ao autenticar a conta.", error);
       toast.error(error instanceof Error ? error.message : "Não foi possível autenticar.");
     } finally {
       setSubmitting(false);
@@ -214,7 +236,7 @@ function Login() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     disabled={!authReady || submitting}
-                    required
+                    required={perfil !== "Administrador"}
                   />
                 </div>
                 <div className="relative">
@@ -235,12 +257,17 @@ function Login() {
                   className="field"
                   value={perfil}
                   onChange={(e) => {
+                    if (e.target.value === "auto") {
+                      setPerfil("auto");
+                      return;
+                    }
                     const selected = PERFIS.find((opcao) => opcao === e.target.value);
                     if (selected) setPerfil(selected);
                   }}
                   aria-label="Perfil"
                   disabled={!authReady || submitting}
                 >
+                  <option value="auto">Detectar perfil pela conta</option>
                   {PERFIS.map((opcao) => (
                     <option key={opcao} value={opcao}>
                       {opcao}
@@ -272,7 +299,8 @@ function Login() {
           </form>
         </div>
         <p className="mt-6 text-center text-[11px] leading-relaxed text-muted-foreground">
-          Contas de alunos, professores e responsáveis ficam salvas apenas neste navegador (modo de teste).Contas locais de alunos e professores são apenas para teste neste navegador.
+          Contas de alunos, professores e responsáveis ficam salvas apenas neste navegador (modo de
+          teste).Contas locais de alunos e professores são apenas para teste neste navegador.
         </p>
       </div>
     </div>

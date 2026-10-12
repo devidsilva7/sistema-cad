@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Search, Trash2, UserRoundX } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Card, Label, PageShell, PrimaryButton } from "@/components/AppShell";
+import { AcessoCriado, Card, Label, PageShell, PrimaryButton } from "@/components/AppShell";
 import { requireAdminSession } from "@/lib/admin-auth";
+import { emailEmUso, usernameEmUso } from "@/lib/cadastros";
 import { createLocalAccount } from "@/lib/local-accounts";
 import { TURMAS, uid, useStore } from "@/lib/store";
 
@@ -26,6 +27,7 @@ const empty = {
   nome: "",
   email: "",
   username: "",
+  senha: "",
   turma: TURMAS[0]!,
   matricula: "",
   responsavel: "",
@@ -33,18 +35,36 @@ const empty = {
   whatsapp: "",
 };
 
+type AcessoAluno = { titulo: string; linhas: { label: string; value: string }[] };
+
 function Alunos() {
-  const { accounts, alunos, set } = useStore();
+  const store = useStore();
+  const { accounts, alunos, professores, set, user } = store;
+  const isAdmin = user?.perfil === "Administrador";
+  const emailUsuario = accounts.find((account) => account.id === user?.localAccountId)?.email;
+  const professorAtual = professores.find(
+    (professor) => professor.email.toLowerCase() === emailUsuario?.toLowerCase(),
+  );
+  const alunosVisiveis = isAdmin
+    ? alunos
+    : alunos.filter((aluno) => professorAtual?.turmas.includes(aluno.turma));
   const [f, setF] = useState(empty);
   const [q, setQ] = useState("");
-  const lista = alunos.filter((a) =>
+  const [acesso, setAcesso] = useState<AcessoAluno | null>(null);
+  const lista = alunosVisiveis.filter((a) =>
     (a.nome + a.matricula + a.turma).toLowerCase().includes(q.toLowerCase()),
   );
 
   const salvar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!f.nome || !f.email || !f.matricula) {
-      toast.error("Preencha nome, e-mail e matrícula.");
+    if (
+      !f.nome.trim() ||
+      !f.email.trim() ||
+      !f.matricula.trim() ||
+      !f.username.trim() ||
+      !f.senha
+    ) {
+      toast.error("Preencha nome, usuário, e-mail, senha e matrícula.");
       return;
     }
     const normalizedEmail = f.email.trim().toLowerCase();
@@ -55,16 +75,18 @@ function Alunos() {
       toast.error("Informe uma matrícula e um nome de usuário válidos.");
       return;
     }
+    if (f.senha.length < 8) {
+      toast.error("A senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
     try {
       await requireAdminSession();
-      if (
-        alunos.some((aluno) => aluno.matricula.trim().toLowerCase() === normalizedMatricula)
-      ) {
+      if (alunos.some((aluno) => aluno.matricula.trim().toLowerCase() === normalizedMatricula)) {
         toast.error("Já existe um aluno cadastrado com essa matrícula.");
         return;
       }
       if (
-        accounts.some((account) => account.email.trim().toLowerCase() === normalizedEmail) ||
+        emailEmUso(store, normalizedEmail) ||
         alunos.some(
           (aluno) =>
             aluno.email?.trim().toLowerCase() === normalizedEmail ||
@@ -74,10 +96,7 @@ function Alunos() {
         toast.error("Já existe uma conta cadastrada com esse e-mail.");
         return;
       }
-      if (
-        normalizedUsername === "admin" ||
-        accounts.some((account) => account.username?.trim().toLowerCase() === normalizedUsername)
-      ) {
+      if (usernameEmUso(store, normalizedUsername)) {
         toast.error("Esse nome de usuário já está em uso.");
         return;
       }
@@ -99,23 +118,43 @@ function Alunos() {
       const id = uid();
       const account = await createLocalAccount(
         f.email,
-        f.username,
+        normalizedUsername,
         f.nome,
         "Aluno",
-        f.matricula,
-        true,
+        f.senha,
       );
+      const dadosAluno = {
+        nome: f.nome.trim(),
+        turma: f.turma,
+        responsavel: f.responsavel.trim(),
+        responsavelEmail: normalizedResponsavelEmail,
+        whatsapp: f.whatsapp,
+      };
       set((s) => ({
         ...s,
         alunos: [
-          { id, ...f, email: normalizedEmail, matricula: f.matricula.trim() },
+          {
+            id,
+            ...dadosAluno,
+            email: normalizedEmail,
+            matricula: f.matricula.trim(),
+          },
           ...s.alunos,
         ],
         accounts: [...s.accounts, account],
       }));
+      setAcesso({
+        titulo: `Acesso do aluno ${account.nome} criado`,
+        linhas: [
+          { label: "E-mail", value: account.email },
+          { label: "Usuário", value: account.username },
+          { label: "Senha definida", value: f.senha },
+          { label: "Perfil", value: account.perfil },
+        ],
+      });
       setF(empty);
       toast.success("Aluno cadastrado e conta criada.", {
-        description: `E-mail: ${account.email} · Senha inicial: matrícula ${f.matricula}. O aluno deverá criar uma nova senha no primeiro acesso.`,
+        description: `E-mail: ${account.email} · Usuário: ${account.username} · A senha definida já pode ser usada para entrar.`,
         duration: 15000,
       });
     } catch (error) {
@@ -135,9 +174,7 @@ function Alunos() {
       set((current) => ({
         ...current,
         alunos: current.alunos.filter((item) => item.id !== alunoId),
-        accounts: current.accounts.filter(
-          (account) => account.email !== aluno.email.toLowerCase(),
-        ),
+        accounts: current.accounts.filter((account) => account.email !== aluno.email.toLowerCase()),
         ocorrencias: current.ocorrencias.filter((item) => item.alunoId !== alunoId),
       }));
       toast.success("Aluno, conta e ocorrências relacionadas foram removidos.");
@@ -175,91 +212,116 @@ function Alunos() {
   };
 
   return (
-    <PageShell title="Cadastrar Alunos" subtitle={`${alunos.length} alunos cadastrados`}>
-      <Card>
-        <form onSubmit={salvar} className="space-y-3">
-          <div>
-            <Label>Nome</Label>
-            <input
-              className="field"
-              value={f.nome}
-              onChange={(e) => setF({ ...f, nome: e.target.value })}
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <PageShell
+      title={isAdmin ? "Cadastrar Alunos" : "Alunos"}
+      subtitle={`${alunosVisiveis.length} alunos ${isAdmin ? "cadastrados" : "associados às suas turmas"}`}
+    >
+      {acesso && (
+        <AcessoCriado
+          titulo={acesso.titulo}
+          linhas={acesso.linhas}
+          onClose={() => setAcesso(null)}
+        />
+      )}
+      {isAdmin && (
+        <Card>
+          <form onSubmit={salvar} className="space-y-3">
             <div>
-              <Label>Turma</Label>
-              <select
-                className="field"
-                value={f.turma}
-                onChange={(e) => setF({ ...f, turma: e.target.value })}
-              >
-                {TURMAS.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>Nome de usuário para entrar</Label>
+              <Label>Nome</Label>
               <input
                 className="field"
-                type="text"
-                autoComplete="off"
-                value={f.username}
-                onChange={(e) => setF({ ...f, username: e.target.value })}
+                value={f.nome}
+                onChange={(e) => setF({ ...f, nome: e.target.value })}
                 required
               />
             </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Turma</Label>
+                <select
+                  className="field"
+                  value={f.turma}
+                  onChange={(e) => setF({ ...f, turma: e.target.value })}
+                >
+                  {TURMAS.map((t) => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Nome de usuário para entrar</Label>
+                <input
+                  className="field"
+                  type="text"
+                  autoComplete="off"
+                  value={f.username}
+                  onChange={(e) => setF({ ...f, username: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Senha para entrar</Label>
+                <input
+                  className="field"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  value={f.senha}
+                  onChange={(e) => setF({ ...f, senha: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label>E-mail de acesso do aluno</Label>
+                <input
+                  className="field"
+                  type="email"
+                  autoComplete="off"
+                  value={f.email}
+                  onChange={(e) => setF({ ...f, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Matrícula</Label>
+                <input
+                  className="field"
+                  value={f.matricula}
+                  onChange={(e) => setF({ ...f, matricula: e.target.value })}
+                />
+              </div>
+            </div>
             <div>
-              <Label>E-mail de acesso do aluno</Label>
+              <Label>Responsável</Label>
+              <input
+                className="field"
+                value={f.responsavel}
+                onChange={(e) => setF({ ...f, responsavel: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>E-mail do responsável (opcional)</Label>
               <input
                 className="field"
                 type="email"
                 autoComplete="off"
-                value={f.email}
-                onChange={(e) => setF({ ...f, email: e.target.value })}
-                required
+                value={f.responsavelEmail}
+                onChange={(e) => setF({ ...f, responsavelEmail: e.target.value })}
               />
             </div>
             <div>
-              <Label>Matrícula</Label>
+              <Label>WhatsApp do responsável</Label>
               <input
                 className="field"
-                value={f.matricula}
-                onChange={(e) => setF({ ...f, matricula: e.target.value })}
+                placeholder="(85) 9…"
+                value={f.whatsapp}
+                onChange={(e) => setF({ ...f, whatsapp: e.target.value })}
               />
             </div>
-          </div>
-          <div>
-            <Label>Responsável</Label>
-            <input
-              className="field"
-              value={f.responsavel}
-              onChange={(e) => setF({ ...f, responsavel: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>E-mail do responsável (opcional)</Label>
-            <input
-              className="field"
-              type="email"
-              autoComplete="off"
-              value={f.responsavelEmail}
-              onChange={(e) => setF({ ...f, responsavelEmail: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>WhatsApp do responsável</Label>
-            <input
-              className="field"
-              placeholder="(85) 9…"
-              value={f.whatsapp}
-              onChange={(e) => setF({ ...f, whatsapp: e.target.value })}
-            />
-          </div>
-          <PrimaryButton type="submit">Cadastrar aluno</PrimaryButton>
-        </form>
-      </Card>
+            <PrimaryButton type="submit">Cadastrar aluno</PrimaryButton>
+          </form>
+        </Card>
+      )}
 
       <div className="relative mt-5">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -285,26 +347,28 @@ function Alunos() {
               {a.responsavelEmail && ` · ${a.responsavelEmail}`}
               {a.whatsapp && ` · ${a.whatsapp}`}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {(a.responsavel || a.responsavelEmail || a.whatsapp) && (
+            {isAdmin && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(a.responsavel || a.responsavelEmail || a.whatsapp) && (
+                  <button
+                    type="button"
+                    onClick={() => void removerResponsavel(a.id)}
+                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-destructive"
+                  >
+                    <UserRoundX className="h-4 w-4" />
+                    Remover contato do responsável
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => void removerResponsavel(a.id)}
-                  className="flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-destructive"
+                  onClick={() => void removerAluno(a.id)}
+                  className="flex items-center gap-1 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
                 >
-                  <UserRoundX className="h-4 w-4" />
-                  Remover contato do responsável
+                  <Trash2 className="h-4 w-4" />
+                  Remover aluno e conta
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => void removerAluno(a.id)}
-                className="flex items-center gap-1 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" />
-                Remover aluno e conta
-              </button>
-            </div>
+              </div>
+            )}
           </Card>
         ))}
       </div>

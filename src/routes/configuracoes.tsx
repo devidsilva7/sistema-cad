@@ -28,14 +28,27 @@ function Config() {
     <PageShell title="Configurações" subtitle="Preferências do sistema">
       <Card className="divide-y">
         {items.map(({ k, label }) => (
-          <label key={k} className="flex items-center justify-between gap-3 py-3 text-sm font-medium">
+          <label
+            key={k}
+            className="flex items-center justify-between gap-3 py-3 text-sm font-medium"
+          >
             {label}
-            <input type="checkbox" checked={opts[k]} onChange={(e) => setOpts({ ...opts, [k]: e.target.checked })} className="h-5 w-5 accent-[var(--primary)]" />
+            <input
+              type="checkbox"
+              checked={opts[k]}
+              onChange={(e) => setOpts({ ...opts, [k]: e.target.checked })}
+              className="h-5 w-5 accent-[var(--primary)]"
+            />
           </label>
         ))}
       </Card>
       <button
-        onClick={() => { localStorage.removeItem("laf-gestao-v1"); toast.success("Dados de exemplo restaurados."); setTimeout(() => location.reload(), 600); set((s) => s); }}
+        onClick={() => {
+          localStorage.removeItem("laf-gestao-v1");
+          toast.success("Dados de exemplo restaurados.");
+          setTimeout(() => location.reload(), 600);
+          set((s) => s);
+        }}
         className="mt-4 w-full rounded-xl border border-destructive py-3 font-semibold text-destructive"
       >
         Restaurar dados de exemplo

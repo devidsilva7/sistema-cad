@@ -11,14 +11,7 @@ import {
   PrimaryButton,
 } from "@/components/AppShell";
 import { requireAdminSession } from "@/lib/admin-auth";
-import {
-  emailEmUso,
-  mascaraTelefone,
-  senhaTemporaria,
-  soDigitos,
-  usernameDoEmail,
-  usernameEmUso,
-} from "@/lib/cadastros";
+import { emailEmUso, mascaraTelefone, soDigitos, usernameEmUso } from "@/lib/cadastros";
 import { createLocalAccount } from "@/lib/local-accounts";
 import { PARENTESCOS, uid, useStore } from "@/lib/store";
 
@@ -34,20 +27,48 @@ export const Route = createFileRoute("/responsaveis")({
   component: Responsaveis,
 });
 
-const vazio = { nome: "", parentesco: PARENTESCOS[0]!, whatsapp: "", email: "", username: "" };
+const vazio = {
+  nome: "",
+  parentesco: PARENTESCOS[0]!,
+  whatsapp: "",
+  email: "",
+  username: "",
+  senha: "",
+};
 
 type Acesso = { titulo: string; linhas: { label: string; value: string }[] };
 
 function Responsaveis() {
   const store = useStore();
-  const { alunos, responsaveis, set } = store;
+  const { alunos, responsaveis, professores, set, user } = store;
+  const isAdmin = user?.perfil === "Administrador";
+  const emailUsuario = store.accounts.find((account) => account.id === user?.localAccountId)?.email;
+  const professorAtual = professores.find(
+    (professor) => professor.email.toLowerCase() === emailUsuario?.toLowerCase(),
+  );
+  const alunosAssociados = isAdmin
+    ? alunos
+    : alunos.filter((aluno) => professorAtual?.turmas.includes(aluno.turma));
+  const idsResponsaveis = new Set(alunosAssociados.map((aluno) => aluno.responsavelId));
+  const emailsResponsaveis = new Set(
+    alunosAssociados
+      .map((aluno) => aluno.responsavelEmail?.toLowerCase())
+      .filter((email): email is string => Boolean(email)),
+  );
+  const responsaveisVisiveis = isAdmin
+    ? responsaveis
+    : responsaveis.filter(
+        (responsavel) =>
+          idsResponsaveis.has(responsavel.id) ||
+          emailsResponsaveis.has(responsavel.email.toLowerCase()),
+      );
   const [f, setF] = useState(vazio);
   const [aberto, setAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [acesso, setAcesso] = useState<Acesso | null>(null);
   const [q, setQ] = useState("");
 
-  const lista = responsaveis.filter((r) =>
+  const lista = responsaveisVisiveis.filter((r) =>
     `${r.nome} ${r.email}`.toLowerCase().includes(q.toLowerCase()),
   );
 
@@ -55,9 +76,13 @@ function Responsaveis() {
     e.preventDefault();
     const nome = f.nome.trim();
     const email = f.email.trim().toLowerCase();
-    const username = (f.username.trim() || usernameDoEmail(email)).toLowerCase();
-    if (!nome || !email) {
-      toast.error("Preencha o nome e o e-mail de acesso.");
+    const username = f.username.trim().toLowerCase();
+    if (!nome || !email || !username || !f.senha) {
+      toast.error("Preencha nome, usuário, e-mail e senha.");
+      return;
+    }
+    if (f.senha.length < 8) {
+      toast.error("A senha precisa ter pelo menos 8 caracteres.");
       return;
     }
     if (soDigitos(f.whatsapp).length < 10) {
@@ -75,8 +100,7 @@ function Responsaveis() {
     setSalvando(true);
     try {
       await requireAdminSession();
-      const senha = senhaTemporaria();
-      const conta = await createLocalAccount(email, username, nome, "Responsável", senha, true);
+      const conta = await createLocalAccount(email, username, nome, "Responsável", f.senha);
       set((s) => ({
         ...s,
         responsaveis: [
@@ -90,7 +114,7 @@ function Responsaveis() {
         linhas: [
           { label: "E-mail", value: conta.email },
           { label: "Usuário", value: conta.username },
-          { label: "Senha temporária", value: senha },
+          { label: "Senha definida", value: f.senha },
         ],
       });
       setF(vazio);
@@ -137,8 +161,11 @@ function Responsaveis() {
   };
 
   return (
-    <PageShell title="Cadastros" subtitle={`${responsaveis.length} responsáveis cadastrados`}>
-      <CadastroTabs />
+    <PageShell
+      title={isAdmin ? "Cadastros" : "Pais e Responsáveis"}
+      subtitle={`${responsaveisVisiveis.length} responsáveis ${isAdmin ? "cadastrados" : "associados às suas turmas"}`}
+    >
+      {isAdmin && <CadastroTabs />}
       {acesso && (
         <AcessoCriado
           titulo={acesso.titulo}
@@ -147,90 +174,105 @@ function Responsaveis() {
         />
       )}
 
-      {aberto ? (
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-bold">Novo responsável</h2>
-            <button
-              type="button"
-              onClick={() => setAberto(false)}
-              aria-label="Cancelar"
-              className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <form onSubmit={salvar} className="space-y-4">
-            <Field label="Nome completo">
-              <input
-                className="field"
-                autoComplete="off"
-                value={f.nome}
-                onChange={(e) => setF({ ...f, nome: e.target.value })}
-              />
-            </Field>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Parentesco">
-                <select
-                  className="field"
-                  value={f.parentesco}
-                  onChange={(e) => setF({ ...f, parentesco: e.target.value })}
-                >
-                  {PARENTESCOS.map((p) => (
-                    <option key={p}>{p}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="WhatsApp" hint="Recebe os avisos de ocorrência.">
-                <input
-                  className="field"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="off"
-                  placeholder="(85) 99999-9999"
-                  value={f.whatsapp}
-                  onChange={(e) => setF({ ...f, whatsapp: mascaraTelefone(e.target.value) })}
-                />
-              </Field>
-              <Field label="E-mail de acesso">
-                <input
-                  className="field"
-                  type="email"
-                  autoComplete="off"
-                  value={f.email}
-                  onChange={(e) => setF({ ...f, email: e.target.value })}
-                />
-              </Field>
-              <Field label="Usuário" hint="Se deixar vazio, usamos o início do e-mail.">
-                <input
-                  className="field"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  placeholder={usernameDoEmail(f.email) || "ex.: maria.silva"}
-                  value={f.username}
-                  onChange={(e) => setF({ ...f, username: e.target.value })}
-                />
-              </Field>
+      {isAdmin ? (
+        aberto ? (
+          <Card>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-bold">Novo responsável</h2>
+              <button
+                type="button"
+                onClick={() => setAberto(false)}
+                aria-label="Cancelar"
+                className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <p className="rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground">
-              Uma senha temporária é gerada ao salvar. No primeiro acesso o responsável cria a senha
-              dele. Depois, vincule o responsável ao aluno na aba <b>Alunos</b>.
-            </p>
-            <PrimaryButton type="submit" disabled={salvando}>
-              {salvando ? "Salvando..." : "Cadastrar responsável"}
-            </PrimaryButton>
-          </form>
-        </Card>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setAberto(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary/30 bg-primary-soft/60 py-4 font-semibold text-primary transition hover:bg-primary-soft"
-        >
-          <Plus className="h-5 w-5" />
-          Novo responsável
-        </button>
-      )}
+            <form onSubmit={salvar} className="space-y-4">
+              <Field label="Nome completo">
+                <input
+                  className="field"
+                  autoComplete="off"
+                  value={f.nome}
+                  onChange={(e) => setF({ ...f, nome: e.target.value })}
+                  required
+                />
+              </Field>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Parentesco">
+                  <select
+                    className="field"
+                    value={f.parentesco}
+                    onChange={(e) => setF({ ...f, parentesco: e.target.value })}
+                  >
+                    {PARENTESCOS.map((p) => (
+                      <option key={p}>{p}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="WhatsApp" hint="Recebe os avisos de ocorrência.">
+                  <input
+                    className="field"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="off"
+                    placeholder="(85) 99999-9999"
+                    value={f.whatsapp}
+                    onChange={(e) => setF({ ...f, whatsapp: mascaraTelefone(e.target.value) })}
+                  />
+                </Field>
+                <Field label="E-mail de acesso">
+                  <input
+                    className="field"
+                    type="email"
+                    autoComplete="off"
+                    value={f.email}
+                    onChange={(e) => setF({ ...f, email: e.target.value })}
+                    required
+                  />
+                </Field>
+                <Field label="Nome de usuário">
+                  <input
+                    className="field"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    value={f.username}
+                    onChange={(e) => setF({ ...f, username: e.target.value })}
+                    required
+                  />
+                </Field>
+                <Field label="Senha" hint="Mínimo de 8 caracteres.">
+                  <input
+                    className="field"
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    value={f.senha}
+                    onChange={(e) => setF({ ...f, senha: e.target.value })}
+                    required
+                  />
+                </Field>
+              </div>
+              <p className="rounded-xl bg-accent px-3 py-2 text-xs text-accent-foreground">
+                A senha definida já permite entrar com o perfil Responsável. Depois, vincule o
+                responsável ao aluno na aba <b>Alunos</b>.
+              </p>
+              <PrimaryButton type="submit" disabled={salvando}>
+                {salvando ? "Salvando..." : "Cadastrar responsável"}
+              </PrimaryButton>
+            </form>
+          </Card>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAberto(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary/30 bg-primary-soft/60 py-4 font-semibold text-primary transition hover:bg-primary-soft"
+          >
+            <Plus className="h-5 w-5" />
+            Novo responsável
+          </button>
+        )
+      ) : null}
 
       <div className="relative mt-5">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -253,7 +295,11 @@ function Responsaveis() {
           </Card>
         )}
         {lista.map((r) => {
-          const filhos = alunos.filter((a) => a.responsavelId === r.id);
+          const filhos = alunosAssociados.filter(
+            (a) =>
+              a.responsavelId === r.id ||
+              a.responsavelEmail?.toLowerCase() === r.email.toLowerCase(),
+          );
           const wa = soDigitos(r.whatsapp);
           return (
             <Card key={r.id} className="!p-3.5">
@@ -288,14 +334,16 @@ function Responsaveis() {
                     {r.whatsapp}
                   </a>
                 )}
-                <button
-                  type="button"
-                  onClick={() => void remover(r.id)}
-                  className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Remover
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => void remover(r.id)}
+                    className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Remover
+                  </button>
+                )}
               </div>
             </Card>
           );
