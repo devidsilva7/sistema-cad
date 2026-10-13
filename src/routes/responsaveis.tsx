@@ -441,31 +441,6 @@ function Responsaveis() {
                 {isAdmin && (
                   <button
                     type="button"
-                    onClick={() => {
-                      const account = store.accounts.find(
-                        (item) => item.email.toLowerCase() === r.email.toLowerCase(),
-                      );
-                      setEditandoId(r.id);
-                      setF({
-                        nome: r.nome,
-                        parentesco: r.parentesco,
-                        whatsapp: r.whatsapp,
-                        email: r.email,
-                        username: account?.username ?? "",
-                        senha: "",
-                      });
-                      setAberto(true);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold"
-                  >
-                    <Pencil className="h-4 w-4" />
-                    Editar
-                  </button>
-                )}
-                {isAdmin && (
-                  <button
-                    type="button"
                     onClick={() => void remover(r.id)}
                     className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
                   >
