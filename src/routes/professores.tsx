@@ -13,7 +13,7 @@ import {
 import { requireAdminSession } from "@/lib/admin-auth";
 import { emailEmUso, usernameEmUso } from "@/lib/cadastros";
 import { createLocalAccount, type LocalAccountProfile } from "@/lib/local-accounts";
-import { TURMAS, uid, useStore } from "@/lib/store";
+import { AREAS_CONHECIMENTO, TURMAS, uid, useStore, type AreaConhecimento } from "@/lib/store";
 
 export const Route = createFileRoute("/professores")({
   head: () => ({
@@ -33,7 +33,21 @@ export const Route = createFileRoute("/professores")({
   component: Professores,
 });
 
-const vazio = { nome: "", disciplina: "", email: "", username: "", senha: "" };
+const vazio: {
+  nome: string;
+  disciplina: string;
+  area: AreaConhecimento;
+  email: string;
+  username: string;
+  senha: string;
+} = {
+  nome: "",
+  disciplina: "",
+  area: AREAS_CONHECIMENTO[0],
+  email: "",
+  username: "",
+  senha: "",
+};
 
 type Acesso = { titulo: string; linhas: { label: string; value: string }[] };
 
@@ -54,7 +68,7 @@ function Professores() {
     ? professores.filter((professor) => professor.dt)
     : professores;
   const lista = professoresVisiveis.filter((p) =>
-    `${p.nome} ${p.disciplina}`.toLowerCase().includes(q.toLowerCase()),
+    `${p.nome} ${p.disciplina} ${p.area ?? ""}`.toLowerCase().includes(q.toLowerCase()),
   );
   const acessosGestao = accounts.filter(
     (account) => account.perfil === "Diretor" || account.perfil === "Coordenador",
@@ -67,9 +81,10 @@ function Professores() {
     const nome = f.nome.trim();
     const email = f.email.trim().toLowerCase();
     const disciplina = f.disciplina.trim();
+    const area = f.area;
     const username = f.username.trim().toLowerCase();
     const perfilDocente = perfilConta === "Professor" || perfilConta === "Diretor de Turma";
-    if (!nome || !username || !email || !f.senha || (perfilDocente && !disciplina)) {
+    if (!nome || !username || !email || !f.senha || (perfilDocente && (!disciplina || !area))) {
       toast.error("Preencha nome, usuário, e-mail, senha e os dados docentes quando aplicável.");
       return;
     }
@@ -98,6 +113,7 @@ function Professores() {
                 nome,
                 email,
                 disciplina,
+                area,
                 turmas,
                 dt: perfilConta === "Diretor de Turma",
               },
@@ -214,15 +230,33 @@ function Professores() {
               </Field>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {(perfilConta === "Professor" || perfilConta === "Diretor de Turma") && (
-                  <Field label="Disciplina">
-                    <input
-                      className="field"
-                      autoComplete="off"
-                      value={f.disciplina}
-                      onChange={(e) => setF({ ...f, disciplina: e.target.value })}
-                      required
-                    />
-                  </Field>
+                  <>
+                    <Field label="Disciplina">
+                      <input
+                        className="field"
+                        autoComplete="off"
+                        value={f.disciplina}
+                        onChange={(e) => setF({ ...f, disciplina: e.target.value })}
+                        required
+                      />
+                    </Field>
+                    <Field label="Área de conhecimento">
+                      <select
+                        className="field"
+                        value={f.area}
+                        onChange={(event) => {
+                          const area = AREAS_CONHECIMENTO.find(
+                            (item) => item === event.target.value,
+                          );
+                          if (area) setF({ ...f, area });
+                        }}
+                      >
+                        {AREAS_CONHECIMENTO.map((areaConhecimento) => (
+                          <option key={areaConhecimento}>{areaConhecimento}</option>
+                        ))}
+                      </select>
+                    </Field>
+                  </>
                 )}
                 <Field label="Nome de usuário">
                   <input
@@ -331,8 +365,8 @@ function Professores() {
               )}
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              <b className="text-foreground">{p.disciplina}</b> ·{" "}
-              {p.turmas.join(", ") || "Sem turmas"}
+              <b className="text-foreground">{p.disciplina}</b>
+              {p.area && ` · ${p.area}`} · {p.turmas.join(", ") || "Sem turmas"}
             </p>
             {podeCadastrar && (
               <button

@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, Trash2, UserRoundX } from "lucide-react";
+import { Phone, Search, Trash2, UserRoundX } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { AcessoCriado, Card, Label, PageShell, PrimaryButton } from "@/components/AppShell";
+import { AcessoCriado, Card, Field, Label, PageShell, PrimaryButton } from "@/components/AppShell";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { emailEmUso, usernameEmUso } from "@/lib/cadastros";
+import { emailEmUso, soDigitos, usernameEmUso } from "@/lib/cadastros";
 import { createLocalAccount } from "@/lib/local-accounts";
 import { TURMAS, uid, useStore } from "@/lib/store";
 
@@ -30,6 +30,7 @@ const empty = {
   senha: "",
   turma: TURMAS[0]!,
   matricula: "",
+  responsavelId: "",
   responsavel: "",
   responsavelEmail: "",
   whatsapp: "",
@@ -39,15 +40,17 @@ type AcessoAluno = { titulo: string; linhas: { label: string; value: string }[] 
 
 function Alunos() {
   const store = useStore();
-  const { accounts, alunos, professores, set, user } = store;
+  const { accounts, alunos, professores, responsaveis, set, user } = store;
   const isAdmin = user?.perfil === "Administrador";
   const emailUsuario = accounts.find((account) => account.id === user?.localAccountId)?.email;
   const professorAtual = professores.find(
     (professor) => professor.email.toLowerCase() === emailUsuario?.toLowerCase(),
   );
-  const alunosVisiveis = isAdmin
-    ? alunos
-    : alunos.filter((aluno) => professorAtual?.turmas.includes(aluno.turma));
+  const eSecretaria = user?.perfil === "Secretaria";
+  const alunosVisiveis =
+    isAdmin || eSecretaria
+      ? alunos
+      : alunos.filter((aluno) => professorAtual?.turmas.includes(aluno.turma));
   const [f, setF] = useState(empty);
   const [q, setQ] = useState("");
   const [acesso, setAcesso] = useState<AcessoAluno | null>(null);
@@ -101,6 +104,7 @@ function Alunos() {
         return;
       }
       if (
+        !f.responsavelId &&
         normalizedResponsavelEmail &&
         (normalizedResponsavelEmail === normalizedEmail ||
           accounts.some(
@@ -126,6 +130,7 @@ function Alunos() {
       const dadosAluno = {
         nome: f.nome.trim(),
         turma: f.turma,
+        responsavelId: f.responsavelId || undefined,
         responsavel: f.responsavel.trim(),
         responsavelEmail: normalizedResponsavelEmail,
         whatsapp: f.whatsapp,
@@ -200,7 +205,13 @@ function Alunos() {
         ...current,
         alunos: current.alunos.map((item) =>
           item.id === alunoId
-            ? { ...item, responsavel: "", responsavelEmail: "", whatsapp: "" }
+            ? {
+                ...item,
+                responsavelId: undefined,
+                responsavel: "",
+                responsavelEmail: "",
+                whatsapp: "",
+              }
             : item,
         ),
       }));
@@ -291,33 +302,60 @@ function Alunos() {
                 />
               </div>
             </div>
-            <div>
-              <Label>Responsável</Label>
-              <input
+            <Field label="Vincular responsável cadastrado">
+              <select
                 className="field"
-                value={f.responsavel}
-                onChange={(e) => setF({ ...f, responsavel: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>E-mail do responsável (opcional)</Label>
-              <input
-                className="field"
-                type="email"
-                autoComplete="off"
-                value={f.responsavelEmail}
-                onChange={(e) => setF({ ...f, responsavelEmail: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>WhatsApp do responsável</Label>
-              <input
-                className="field"
-                placeholder="(85) 9…"
-                value={f.whatsapp}
-                onChange={(e) => setF({ ...f, whatsapp: e.target.value })}
-              />
-            </div>
+                value={f.responsavelId}
+                onChange={(event) => {
+                  const responsavel = responsaveis.find((item) => item.id === event.target.value);
+                  setF({
+                    ...f,
+                    responsavelId: responsavel?.id ?? "",
+                    responsavel: responsavel?.nome ?? "",
+                    responsavelEmail: responsavel?.email ?? "",
+                    whatsapp: responsavel?.whatsapp ?? "",
+                  });
+                }}
+              >
+                <option value="">Sem vínculo cadastrado</option>
+                {responsaveis.map((responsavel) => (
+                  <option key={responsavel.id} value={responsavel.id}>
+                    {responsavel.nome} · {responsavel.email}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            {!f.responsavelId && (
+              <>
+                <div>
+                  <Label>Nome do responsável (opcional)</Label>
+                  <input
+                    className="field"
+                    value={f.responsavel}
+                    onChange={(e) => setF({ ...f, responsavel: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>E-mail do responsável (opcional)</Label>
+                  <input
+                    className="field"
+                    type="email"
+                    autoComplete="off"
+                    value={f.responsavelEmail}
+                    onChange={(e) => setF({ ...f, responsavelEmail: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>WhatsApp do responsável</Label>
+                  <input
+                    className="field"
+                    placeholder="(85) 9…"
+                    value={f.whatsapp}
+                    onChange={(e) => setF({ ...f, whatsapp: e.target.value })}
+                  />
+                </div>
+              </>
+            )}
             <PrimaryButton type="submit">Cadastrar aluno</PrimaryButton>
           </form>
         </Card>
@@ -335,6 +373,37 @@ function Alunos() {
       <div className="mt-3 space-y-2">
         {lista.map((a) => (
           <Card key={a.id} className="!p-3">
+            {(() => {
+              const responsavel = store.responsaveis.find(
+                (item) =>
+                  item.id === a.responsavelId ||
+                  (a.responsavelEmail &&
+                    item.email.toLowerCase() === a.responsavelEmail.toLowerCase()),
+              );
+              const nomeResponsavel = responsavel?.nome || a.responsavel || "Não cadastrado";
+              const contatoResponsavel = responsavel?.whatsapp || a.whatsapp;
+              const numeroResponsavel = soDigitos(contatoResponsavel);
+              return (
+                <div className="mb-2 rounded-lg bg-accent/50 px-2.5 py-2 text-xs">
+                  <p className="font-semibold">Responsável: {nomeResponsavel}</p>
+                  {contatoResponsavel && (
+                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span>{contatoResponsavel}</span>
+                      {numeroResponsavel.length >= 10 && (
+                        <a
+                          href={`tel:${numeroResponsavel}`}
+                          className="inline-flex items-center gap-1 font-semibold text-primary underline"
+                          aria-label={`Ligar para ${nomeResponsavel}`}
+                        >
+                          <Phone className="h-3.5 w-3.5" />
+                          Ligar
+                        </a>
+                      )}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
             <div className="flex items-center justify-between gap-2">
               <p className="min-w-0 truncate font-semibold">{a.nome}</p>
               <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">

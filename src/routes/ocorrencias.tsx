@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Send, Trash2 } from "lucide-react";
+import { Phone, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, Label, PageShell, PrimaryButton } from "@/components/AppShell";
+import { soDigitos } from "@/lib/cadastros";
 import { fmtData, TURMAS, uid, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/ocorrencias")({
@@ -34,9 +35,23 @@ const TEMPLATES = [
 ];
 
 function Ocorrencias() {
-  const { alunos, ocorrencias, set, user } = useStore();
+  const { accounts, alunos, ocorrencias, professores, responsaveis, set, user } = useStore();
   const somenteLeitura = user?.perfil === "Diretor";
   const podeGerenciar = user?.perfil === "Administrador" || user?.perfil === "Coordenador";
+  const emailUsuario = accounts.find((account) => account.id === user?.localAccountId)?.email;
+  const professorAtual = professores.find(
+    (professor) => professor.email.toLowerCase() === emailUsuario?.toLowerCase(),
+  );
+  const turmasVisiveis =
+    user?.perfil === "Professor" || user?.perfil === "Diretor de Turma"
+      ? (professorAtual?.turmas ?? [])
+      : undefined;
+  const alunosVisiveis = turmasVisiveis
+    ? alunos.filter((aluno) => turmasVisiveis.includes(aluno.turma))
+    : alunos;
+  const ocorrenciasVisiveis = turmasVisiveis
+    ? ocorrencias.filter((ocorrencia) => turmasVisiveis.includes(ocorrencia.turma))
+    : ocorrencias;
   const [turma, setTurma] = useState(TURMAS[0]!);
   const [alunoId, setAlunoId] = useState("");
   const [tipo, setTipo] = useState(TIPOS[0]!);
@@ -45,10 +60,18 @@ function Ocorrencias() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [tipoEditado, setTipoEditado] = useState(TIPOS[0]!);
   const [obsEditada, setObsEditada] = useState("");
-  const daTurma = alunos.filter((a) => a.turma === turma);
+  const daTurma = alunosVisiveis.filter((a) => a.turma === turma);
+  const alunoSelecionado = alunosVisiveis.find((aluno) => aluno.id === alunoId);
+  const responsavelDoAluno = (aluno: (typeof alunos)[number]) =>
+    responsaveis.find(
+      (responsavel) =>
+        responsavel.id === aluno.responsavelId ||
+        (aluno.responsavelEmail &&
+          responsavel.email.toLowerCase() === aluno.responsavelEmail.toLowerCase()),
+    );
 
   const enviar = () => {
-    const aluno = alunos.find((a) => a.id === alunoId);
+    const aluno = alunosVisiveis.find((a) => a.id === alunoId);
     if (!aluno) {
       toast.error("Selecione um aluno.");
       return;
@@ -70,8 +93,8 @@ function Ocorrencias() {
           ...s.ocorrencias,
         ],
       }));
-      toast.success("Ocorrência enviada!", {
-        description: `Direção e ${aluno.responsavel} notificados via WhatsApp (${aluno.whatsapp}) e E-mail.`,
+      toast.success("Ocorrência registrada e disponível para o responsável.", {
+        description: `Registro de ${aluno.nome} salvo no histórico escolar.`,
       });
       setSending(false);
       setAlunoId("");
@@ -112,6 +135,34 @@ function Ocorrencias() {
               ))}
             </select>
           </div>
+          {alunoSelecionado && (
+            <div className="rounded-xl border border-border/70 bg-accent/40 p-3 text-sm">
+              <p className="font-semibold">
+                Responsável:{" "}
+                {responsavelDoAluno(alunoSelecionado)?.nome ||
+                  alunoSelecionado.responsavel ||
+                  "Não cadastrado"}
+              </p>
+              {(() => {
+                const responsavel = responsavelDoAluno(alunoSelecionado);
+                const contato = responsavel?.whatsapp || alunoSelecionado.whatsapp;
+                const numero = soDigitos(contato);
+                return numero.length >= 10 ? (
+                  <a
+                    href={`tel:${numero}`}
+                    className="mt-1 inline-flex items-center gap-1.5 text-primary underline"
+                  >
+                    <Phone className="h-4 w-4" />
+                    {contato}
+                  </a>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {contato || "Contato não cadastrado."}
+                  </p>
+                );
+              })()}
+            </div>
+          )}
           <div>
             <Label>Tipo de ocorrência</Label>
             <div className="grid grid-cols-2 gap-2">
@@ -162,13 +213,16 @@ function Ocorrencias() {
       )}
       <section className="mt-5 space-y-2">
         <h2 className="px-1 text-sm font-bold">Histórico de ocorrências</h2>
-        {ocorrencias.length === 0 && (
+        {ocorrenciasVisiveis.length === 0 && (
           <Card>
             <p className="text-sm text-muted-foreground">Nenhuma ocorrência registrada ainda.</p>
           </Card>
         )}
-        {ocorrencias.map((ocorrencia) => {
+        {ocorrenciasVisiveis.map((ocorrencia) => {
           const aluno = alunos.find((item) => item.id === ocorrencia.alunoId);
+          const responsavel = aluno ? responsavelDoAluno(aluno) : undefined;
+          const contatoResponsavel = responsavel?.whatsapp || aluno?.whatsapp || "";
+          const numeroResponsavel = soDigitos(contatoResponsavel);
           const editando = editandoId === ocorrencia.id;
           return (
             <Card key={ocorrencia.id} className="flex items-start justify-between gap-3 !p-3">
@@ -232,6 +286,24 @@ function Ocorrencias() {
                     ? ` · Registrada por ${ocorrencia.registradoPor}`
                     : ""}
                 </p>
+                <div className="mt-2 text-xs">
+                  <p className="font-semibold">
+                    Responsável: {responsavel?.nome || aluno?.responsavel || "Não cadastrado"}
+                  </p>
+                  {numeroResponsavel.length >= 10 ? (
+                    <a
+                      href={`tel:${numeroResponsavel}`}
+                      className="mt-1 inline-flex items-center gap-1.5 text-primary underline"
+                    >
+                      <Phone className="h-3.5 w-3.5" />
+                      {contatoResponsavel}
+                    </a>
+                  ) : (
+                    <p className="mt-1 text-muted-foreground">
+                      {contatoResponsavel || "Contato não cadastrado."}
+                    </p>
+                  )}
+                </div>
               </div>
               {podeGerenciar && !editando && (
                 <button

@@ -70,6 +70,8 @@ describe("local account registration and login", () => {
       { perfil: "Diretor de Turma" as const, route: "/ocorrencias" },
       { perfil: "Diretor" as const, route: "/agendamento-ambientes" },
       { perfil: "Coordenador" as const, route: "/notificacoes" },
+      { perfil: "Secretaria" as const, route: "/secretaria" },
+      { perfil: "Financeiro" as const, route: "/financeiro" },
     ];
 
     for (const { perfil, route } of profiles) {
@@ -90,5 +92,24 @@ describe("local account registration and login", () => {
       expect(authenticated?.perfil).toBe(perfil);
       expect(canAccessRoute(authenticated?.perfil, route)).toBe(true);
     }
+  });
+
+  it("does not authenticate a deactivated local account", async () => {
+    const account = await createLocalAccount(
+      "financeiro@school.test",
+      "financeiro",
+      "Equipe Financeira",
+      "Financeiro",
+      "SenhaSegura123",
+    );
+
+    await expect(
+      authenticateLocalAccount(
+        [{ ...account, ativo: false }],
+        account.email,
+        account.username,
+        "SenhaSegura123",
+      ),
+    ).resolves.toBeNull();
   });
 });

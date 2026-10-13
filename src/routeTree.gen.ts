@@ -12,17 +12,21 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as AgendamentoAmbientesRouteImport } from './routes/agendamento-ambientes'
+import { Route as AgendamentoDatashowsRouteImport } from './routes/agendamento-datashows'
 import { Route as AlunosRouteImport } from './routes/alunos'
 import { Route as CardapioRouteImport } from './routes/cardapio'
 import { Route as ComunicadosRouteImport } from './routes/comunicados'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as EquipeRouteImport } from './routes/equipe'
+import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as HorariosRouteImport } from './routes/horarios'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as OcorrenciasRouteImport } from './routes/ocorrencias'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ProfessoresRouteImport } from './routes/professores'
 import { Route as ResponsaveisRouteImport } from './routes/responsaveis'
+import { Route as SecretariaRouteImport } from './routes/secretaria'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -37,6 +41,11 @@ const AgendaRoute = AgendaRouteImport.update({
 const AgendamentoAmbientesRoute = AgendamentoAmbientesRouteImport.update({
   id: '/agendamento-ambientes',
   path: '/agendamento-ambientes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendamentoDatashowsRoute = AgendamentoDatashowsRouteImport.update({
+  id: '/agendamento-datashows',
+  path: '/agendamento-datashows',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlunosRoute = AlunosRouteImport.update({
@@ -62,6 +71,16 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EquipeRoute = EquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceiroRoute = FinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HorariosRoute = HorariosRouteImport.update({
@@ -94,55 +113,72 @@ const ResponsaveisRoute = ResponsaveisRouteImport.update({
   path: '/responsaveis',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SecretariaRoute = SecretariaRouteImport.update({
+  id: '/secretaria',
+  path: '/secretaria',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
   '/agendamento-ambientes': typeof AgendamentoAmbientesRoute
+  '/agendamento-datashows': typeof AgendamentoDatashowsRoute
   '/alunos': typeof AlunosRoute
   '/cardapio': typeof CardapioRoute
   '/comunicados': typeof ComunicadosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/dashboard': typeof DashboardRoute
+  '/equipe': typeof EquipeRoute
+  '/financeiro': typeof FinanceiroRoute
   '/horarios': typeof HorariosRoute
   '/notificacoes': typeof NotificacoesRoute
   '/ocorrencias': typeof OcorrenciasRoute
   '/perfil': typeof PerfilRoute
   '/professores': typeof ProfessoresRoute
   '/responsaveis': typeof ResponsaveisRoute
+  '/secretaria': typeof SecretariaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
   '/agendamento-ambientes': typeof AgendamentoAmbientesRoute
+  '/agendamento-datashows': typeof AgendamentoDatashowsRoute
   '/alunos': typeof AlunosRoute
   '/cardapio': typeof CardapioRoute
   '/comunicados': typeof ComunicadosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/dashboard': typeof DashboardRoute
+  '/equipe': typeof EquipeRoute
+  '/financeiro': typeof FinanceiroRoute
   '/horarios': typeof HorariosRoute
   '/notificacoes': typeof NotificacoesRoute
   '/ocorrencias': typeof OcorrenciasRoute
   '/perfil': typeof PerfilRoute
   '/professores': typeof ProfessoresRoute
   '/responsaveis': typeof ResponsaveisRoute
+  '/secretaria': typeof SecretariaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
   '/agendamento-ambientes': typeof AgendamentoAmbientesRoute
+  '/agendamento-datashows': typeof AgendamentoDatashowsRoute
   '/alunos': typeof AlunosRoute
   '/cardapio': typeof CardapioRoute
   '/comunicados': typeof ComunicadosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/dashboard': typeof DashboardRoute
+  '/equipe': typeof EquipeRoute
+  '/financeiro': typeof FinanceiroRoute
   '/horarios': typeof HorariosRoute
   '/notificacoes': typeof NotificacoesRoute
   '/ocorrencias': typeof OcorrenciasRoute
   '/perfil': typeof PerfilRoute
   '/professores': typeof ProfessoresRoute
   '/responsaveis': typeof ResponsaveisRoute
+  '/secretaria': typeof SecretariaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -150,66 +186,82 @@ export interface FileRouteTypes {
     | '/'
     | '/agenda'
     | '/agendamento-ambientes'
+    | '/agendamento-datashows'
     | '/alunos'
     | '/cardapio'
     | '/comunicados'
     | '/configuracoes'
     | '/dashboard'
+    | '/equipe'
+    | '/financeiro'
     | '/horarios'
     | '/notificacoes'
     | '/ocorrencias'
     | '/perfil'
     | '/professores'
     | '/responsaveis'
+    | '/secretaria'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/agenda'
     | '/agendamento-ambientes'
+    | '/agendamento-datashows'
     | '/alunos'
     | '/cardapio'
     | '/comunicados'
     | '/configuracoes'
     | '/dashboard'
+    | '/equipe'
+    | '/financeiro'
     | '/horarios'
     | '/notificacoes'
     | '/ocorrencias'
     | '/perfil'
     | '/professores'
     | '/responsaveis'
+    | '/secretaria'
   id:
     | '__root__'
     | '/'
     | '/agenda'
     | '/agendamento-ambientes'
+    | '/agendamento-datashows'
     | '/alunos'
     | '/cardapio'
     | '/comunicados'
     | '/configuracoes'
     | '/dashboard'
+    | '/equipe'
+    | '/financeiro'
     | '/horarios'
     | '/notificacoes'
     | '/ocorrencias'
     | '/perfil'
     | '/professores'
     | '/responsaveis'
+    | '/secretaria'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgendaRoute: typeof AgendaRoute
   AgendamentoAmbientesRoute: typeof AgendamentoAmbientesRoute
+  AgendamentoDatashowsRoute: typeof AgendamentoDatashowsRoute
   AlunosRoute: typeof AlunosRoute
   CardapioRoute: typeof CardapioRoute
   ComunicadosRoute: typeof ComunicadosRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   DashboardRoute: typeof DashboardRoute
+  EquipeRoute: typeof EquipeRoute
+  FinanceiroRoute: typeof FinanceiroRoute
   HorariosRoute: typeof HorariosRoute
   NotificacoesRoute: typeof NotificacoesRoute
   OcorrenciasRoute: typeof OcorrenciasRoute
   PerfilRoute: typeof PerfilRoute
   ProfessoresRoute: typeof ProfessoresRoute
   ResponsaveisRoute: typeof ResponsaveisRoute
+  SecretariaRoute: typeof SecretariaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -233,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/agendamento-ambientes'
       fullPath: '/agendamento-ambientes'
       preLoaderRoute: typeof AgendamentoAmbientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agendamento-datashows': {
+      id: '/agendamento-datashows'
+      path: '/agendamento-datashows'
+      fullPath: '/agendamento-datashows'
+      preLoaderRoute: typeof AgendamentoDatashowsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alunos': {
@@ -268,6 +327,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/equipe': {
+      id: '/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof EquipeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/financeiro': {
+      id: '/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof FinanceiroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/horarios': {
@@ -312,6 +385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResponsaveisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/secretaria': {
+      id: '/secretaria'
+      path: '/secretaria'
+      fullPath: '/secretaria'
+      preLoaderRoute: typeof SecretariaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -319,17 +399,21 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgendaRoute: AgendaRoute,
   AgendamentoAmbientesRoute: AgendamentoAmbientesRoute,
+  AgendamentoDatashowsRoute: AgendamentoDatashowsRoute,
   AlunosRoute: AlunosRoute,
   CardapioRoute: CardapioRoute,
   ComunicadosRoute: ComunicadosRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   DashboardRoute: DashboardRoute,
+  EquipeRoute: EquipeRoute,
+  FinanceiroRoute: FinanceiroRoute,
   HorariosRoute: HorariosRoute,
   NotificacoesRoute: NotificacoesRoute,
   OcorrenciasRoute: OcorrenciasRoute,
   PerfilRoute: PerfilRoute,
   ProfessoresRoute: ProfessoresRoute,
   ResponsaveisRoute: ResponsaveisRoute,
+  SecretariaRoute: SecretariaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

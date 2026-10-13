@@ -21,5 +21,11 @@ describe("App routing", () => {
     expect(router.matchRoutes("/agendamento-ambientes").at(-1)?.routeId).toBe(
       "/agendamento-ambientes",
     );
+    expect(router.matchRoutes("/agendamento-datashows").at(-1)?.routeId).toBe(
+      "/agendamento-datashows",
+    );
+    expect(router.matchRoutes("/secretaria").at(-1)?.routeId).toBe("/secretaria");
+    expect(router.matchRoutes("/financeiro").at(-1)?.routeId).toBe("/financeiro");
+    expect(router.matchRoutes("/equipe").at(-1)?.routeId).toBe("/equipe");
   });
 });

@@ -34,7 +34,10 @@ describe("role-based route access", () => {
       expect(canAccessRoute(perfil, "/responsaveis")).toBe(true);
       expect(canAccessRoute(perfil, "/horarios")).toBe(true);
       expect(canAccessRoute(perfil, "/agendamento-ambientes")).toBe(true);
+      expect(canAccessRoute(perfil, "/agendamento-datashows")).toBe(true);
       expect(canAccessRoute(perfil, "/professores")).toBe(false);
+      expect(canAccessRoute(perfil, "/secretaria")).toBe(false);
+      expect(canAccessRoute(perfil, "/financeiro")).toBe(false);
       expect(canAccessRoute(perfil, "/configuracoes")).toBe(false);
     }
   });
@@ -47,6 +50,9 @@ describe("role-based route access", () => {
       "/cardapio",
       "/horarios",
       "/agendamento-ambientes",
+      "/agendamento-datashows",
+      "/secretaria",
+      "/financeiro",
     ]) {
       expect(canAccessRoute("Diretor", rota)).toBe(true);
     }
@@ -64,6 +70,9 @@ describe("role-based route access", () => {
       "/notificacoes",
       "/horarios",
       "/agendamento-ambientes",
+      "/agendamento-datashows",
+      "/secretaria",
+      "/financeiro",
     ]) {
       expect(canAccessRoute("Coordenador", rota)).toBe(true);
     }
@@ -92,6 +101,18 @@ describe("role-based route access", () => {
     ]) {
       expect(canAccessRoute("Responsável", rota)).toBe(false);
     }
+  });
+
+  it("limits secretary and finance staff to their assigned modules", () => {
+    expect(canAccessRoute("Secretaria", "/secretaria")).toBe(true);
+    expect(canAccessRoute("Secretaria", "/alunos")).toBe(true);
+    expect(canAccessRoute("Secretaria", "/cardapio")).toBe(true);
+    expect(canAccessRoute("Secretaria", "/financeiro")).toBe(false);
+    expect(canAccessRoute("Financeiro", "/financeiro")).toBe(true);
+    expect(canAccessRoute("Financeiro", "/secretaria")).toBe(false);
+    expect(canAccessRoute("Secretaria", "/equipe")).toBe(false);
+    expect(canAccessRoute("Financeiro", "/equipe")).toBe(false);
+    expect(canAccessRoute("Administrador", "/equipe")).toBe(true);
   });
 
   it("keeps guardian registration read access limited to staff and administrators", () => {

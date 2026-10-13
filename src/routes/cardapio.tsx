@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Coffee, Pencil, Soup, Apple } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Card, Label, PageShell, PrimaryButton } from "@/components/AppShell";
-import { DIAS, useStore, type Dia, type Refeicoes } from "@/lib/store";
+import { Card, PageShell, PrimaryButton } from "@/components/AppShell";
+import { DIAS, isPerfilSecretaria, useStore, type Dia, type Refeicoes } from "@/lib/store";
 
 export const Route = createFileRoute("/cardapio")({
   head: () => ({
@@ -31,7 +31,7 @@ const REF = [
 
 function Cardapio() {
   const { cardapio, set, user } = useStore();
-  const canEdit = user?.perfil === "Administrador";
+  const canEdit = user?.perfil === "Administrador" || isPerfilSecretaria(user?.perfil);
   const [dia, setDia] = useState<Dia>("Segunda");
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState<Refeicoes>(cardapio[dia]);
@@ -97,7 +97,6 @@ function Cardapio() {
           )}
         </div>
       )}
-      <Label> </Label>
     </PageShell>
   );
 }

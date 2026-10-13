@@ -3,7 +3,7 @@ import { CalendarClock, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, Field, PageShell, PrimaryButton } from "@/components/AppShell";
-import { DIAS, TURMAS, uid, useStore } from "@/lib/store";
+import { BLOCOS_HORARIOS, DIAS, TURMAS, uid, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/horarios")({
   head: () => ({
@@ -14,15 +14,6 @@ export const Route = createFileRoute("/horarios")({
   }),
   component: Horarios,
 });
-
-const PERIODOS = [
-  "07:00 – 07:50",
-  "07:50 – 08:40",
-  "08:40 – 09:30",
-  "09:50 – 10:40",
-  "10:40 – 11:30",
-  "11:30 – 12:20",
-];
 
 function Horarios() {
   const { accounts, aulasHorario, professores, set, user } = useStore();
@@ -89,9 +80,9 @@ function Horarios() {
                 value={periodo}
                 onChange={(event) => setPeriodo(Number(event.target.value))}
               >
-                {PERIODOS.map((item, index) => (
-                  <option key={item} value={index + 1}>
-                    {index + 1}º · {item}
+                {BLOCOS_HORARIOS.filter((bloco) => bloco.tipo === "aula").map((bloco) => (
+                  <option key={bloco.periodo} value={bloco.periodo}>
+                    {bloco.periodo}º · {bloco.horario}
                   </option>
                 ))}
               </select>
@@ -148,15 +139,29 @@ function Horarios() {
                 {diaSemana}
               </h2>
               <div className="space-y-2">
-                {PERIODOS.map((horario, index) => {
-                  const periodoAulas = aulasDoDia.filter((aula) => aula.periodo === index + 1);
+                {BLOCOS_HORARIOS.map((bloco) => {
+                  if (bloco.tipo !== "aula") {
+                    const titulo = bloco.tipo === "almoco" ? "Almoço" : "Intervalo";
+                    return (
+                      <div
+                        key={`${titulo}-${bloco.horario}`}
+                        className="grid grid-cols-[7rem_1fr] gap-2 border-t border-border/60 pt-2"
+                      >
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          {bloco.horario}
+                        </p>
+                        <p className="text-xs font-semibold text-muted-foreground">{titulo}</p>
+                      </div>
+                    );
+                  }
+                  const periodoAulas = aulasDoDia.filter((aula) => aula.periodo === bloco.periodo);
                   return (
                     <div
-                      key={horario}
+                      key={bloco.periodo}
                       className="grid grid-cols-[7rem_1fr] gap-2 border-t border-border/60 pt-2"
                     >
                       <p className="text-xs font-semibold text-muted-foreground">
-                        {index + 1}º · {horario}
+                        {bloco.periodo}º · {bloco.horario}
                       </p>
                       <div className="space-y-1">
                         {periodoAulas.map((aula) => {

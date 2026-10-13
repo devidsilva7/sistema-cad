@@ -1,5 +1,22 @@
 export type LocalAccountProfile =
-  "Professor" | "Diretor de Turma" | "Diretor" | "Coordenador" | "Aluno" | "Responsável";
+  | "Professor"
+  | "Diretor de Turma"
+  | "Diretor"
+  | "Coordenador"
+  | "Aluno"
+  | "Responsável"
+  | "Secretaria"
+  | "Financeiro";
+const LOCAL_ACCOUNT_PROFILES: LocalAccountProfile[] = [
+  "Professor",
+  "Diretor de Turma",
+  "Diretor",
+  "Coordenador",
+  "Aluno",
+  "Responsável",
+  "Secretaria",
+  "Financeiro",
+];
 
 export type LocalAccount = {
   id: string;
@@ -10,6 +27,7 @@ export type LocalAccount = {
   passwordSalt: string;
   passwordHash: string;
   mustChangePassword: boolean;
+  ativo?: boolean;
 };
 
 const PASSWORD_ITERATIONS = 120_000;
@@ -56,6 +74,7 @@ export async function createLocalAccount(
     passwordSalt: toHex(salt),
     passwordHash: await hashPassword(password, salt),
     mustChangePassword,
+    ativo: true,
   };
 
   return account;
@@ -72,6 +91,8 @@ export async function authenticateLocalAccount(
     (entry) =>
       entry.email === email.trim().toLowerCase() &&
       entry.username === username.trim().toLowerCase() &&
+      entry.ativo !== false &&
+      LOCAL_ACCOUNT_PROFILES.some((profile) => profile === String(entry.perfil)) &&
       (perfil === undefined || entry.perfil === perfil),
   );
   if (!account) return null;

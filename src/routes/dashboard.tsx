@@ -2,15 +2,19 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import {
   Bell,
+  Building2,
+  CircleDollarSign,
   CalendarDays,
   Clock3,
   FlaskConical,
   GraduationCap,
   HeartHandshake,
   Megaphone,
+  Presentation,
   Settings,
   TriangleAlert,
   UserRound,
+  UserRoundCog,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
@@ -35,27 +39,46 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-type Modulo = { to: string; label: string; desc: string; icon: LucideIcon };
+type Modulo = {
+  to: string;
+  label: string;
+  desc: string;
+  icon: LucideIcon;
+  search?: { perfil: "Secretaria" | "Financeiro" };
+};
 const GRUPOS: { titulo: string; itens: Modulo[] }[] = [
   {
     titulo: "Dia a dia",
     itens: [
-      { to: "/agenda", label: "Agenda", desc: "Compromissos", icon: CalendarDays },
-      { to: "/ocorrencias", label: "Ocorrências", desc: "Registro rápido", icon: Megaphone },
-      { to: "/cardapio", label: "Cardápio", desc: "Merenda da semana", icon: UtensilsCrossed },
-      { to: "/comunicados", label: "Comunicados", desc: "Avisos da direção", icon: Bell },
-      { to: "/horarios", label: "Horários", desc: "Grade semanal de aulas", icon: Clock3 },
       {
         to: "/agendamento-ambientes",
         label: "Ambientes",
         desc: "Laboratórios e espaços",
         icon: FlaskConical,
       },
+      { to: "/ocorrencias", label: "Ocorrências", desc: "Registro rápido", icon: Megaphone },
+      {
+        to: "/agendamento-datashows",
+        label: "Agendamento dos datashows",
+        desc: "Reservar equipamento",
+        icon: Presentation,
+      },
+      { to: "/agenda", label: "Agenda", desc: "Compromissos", icon: CalendarDays },
+      { to: "/cardapio", label: "Cardápio", desc: "Merenda da semana", icon: UtensilsCrossed },
+      { to: "/comunicados", label: "Comunicados", desc: "Avisos da direção", icon: Bell },
+      { to: "/horarios", label: "Horários", desc: "Grade semanal de aulas", icon: Clock3 },
     ],
   },
   {
     titulo: "Administração",
     itens: [
+      { to: "/secretaria", label: "Secretaria", desc: "Resumo de cadastros", icon: Building2 },
+      {
+        to: "/financeiro",
+        label: "Financeiro",
+        desc: "Visão geral do módulo",
+        icon: CircleDollarSign,
+      },
       { to: "/alunos", label: "Alunos", desc: "Cadastrar e gerenciar", icon: GraduationCap },
       { to: "/professores", label: "Professores", desc: "Professores e DTs", icon: UserRound },
       {
@@ -63,6 +86,20 @@ const GRUPOS: { titulo: string; itens: Modulo[] }[] = [
         label: "Responsáveis",
         desc: "Pais e responsáveis",
         icon: HeartHandshake,
+      },
+      {
+        to: "/equipe",
+        label: "Pessoal da Secretaria",
+        desc: "Cadastrar e gerenciar equipe",
+        icon: UserRoundCog,
+        search: { perfil: "Secretaria" },
+      },
+      {
+        to: "/equipe",
+        label: "Pessoal do Financeiro",
+        desc: "Cadastrar e gerenciar equipe",
+        icon: UserRoundCog,
+        search: { perfil: "Financeiro" },
       },
       { to: "/configuracoes", label: "Configurações", desc: "Preferências", icon: Settings },
     ],
@@ -144,10 +181,11 @@ function Dashboard() {
               {grupo.titulo}
             </h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {grupo.itens.map(({ to, label, desc, icon: Icon }) => (
+              {grupo.itens.map(({ to, label, desc, icon: Icon, search }) => (
                 <Link
-                  key={to}
+                  key={`${to}-${search?.perfil ?? label}`}
                   to={to}
+                  search={search}
                   className="group flex flex-col items-start gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-card transition duration-200 hover:border-primary/25 hover:shadow-[0_18px_38px_-18px_oklch(0.3_0.05_168_/_35%)] active:scale-[0.98]"
                 >
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary transition duration-200 group-hover:bg-primary group-hover:text-primary-foreground">
@@ -179,7 +217,7 @@ function Dashboard() {
             <div className="flex items-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground shadow-card">
               <TriangleAlert className="h-7 w-7 shrink-0 text-gold" />
               <p className="border-l border-primary-foreground/30 pl-3 text-sm font-medium">
-                Notificação imediata para direção e pais a cada registro emitido.
+                Cada ocorrência fica disponível para consulta pela Direção e pelo responsável.
               </p>
             </div>
           </>

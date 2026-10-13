@@ -23,11 +23,13 @@ export type Responsavel = {
   whatsapp: string;
   parentesco: string;
 };
+export type AreaConhecimento = (typeof AREAS_CONHECIMENTO)[number];
 export type Professor = {
   id: string;
   nome: string;
   email: string;
   disciplina: string;
+  area?: AreaConhecimento;
   turmas: string[];
   dt: boolean;
 };
@@ -56,6 +58,45 @@ export type ReservaAmbiente = {
   solicitante: string;
   solicitanteEmail: string;
 };
+export type ReservaDatashow = {
+  id: string;
+  dia: Dia;
+  periodo: number;
+  solicitante: string;
+  solicitanteEmail: string;
+};
+export type Funcionario = {
+  id: string;
+  accountId: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  cpf: string;
+  cargo: string;
+  perfil: "Secretaria" | "Financeiro";
+  ativo: boolean;
+};
+export type SolicitacaoDocumento = {
+  id: string;
+  alunoId: string;
+  tipo:
+    | "Declaração de frequência"
+    | "Comprovante de matrícula"
+    | "Histórico escolar"
+    | "Ficha do aluno";
+  status: "Solicitado" | "Em andamento" | "Concluído" | "Entregue";
+  criadaEm: string;
+};
+export type LancamentoFinanceiro = {
+  id: string;
+  tipo: "Receita" | "Despesa";
+  descricao: string;
+  valor: number;
+  competencia: string;
+  status: "Pago" | "Pendente" | "Atrasado";
+  alunoId?: string;
+  criadaEm: string;
+};
 export type Comunicado = {
   id: string;
   titulo: string;
@@ -73,21 +114,68 @@ export const PERFIS = [
   "Diretor de Turma",
   "Aluno",
   "Responsável",
+  "Secretaria",
+  "Financeiro",
 ] as const;
 export type Perfil = (typeof PERFIS)[number];
 export type User = { nome: string; perfil: Perfil; localAccountId?: string };
 
 export const TURMAS = [
   "1º Informática",
-  "1º Enfermagem",
   "2º Informática",
-  "2º Administração",
   "3º Informática",
+  "1º Administração",
+  "2º Administração",
+  "3º Administração",
+  "1º Meio Ambiente",
+  "2º Meio Ambiente",
+  "3º Meio Ambiente",
+  "1º Enfermagem",
   "3º Enfermagem",
+];
+export const AREAS_CONHECIMENTO = ["Linguagens", "Matemática", "Humanas", "Natureza"] as const;
+export const PERIODOS_AULA = [
+  "07:30 – 08:20",
+  "08:20 – 09:10",
+  "09:30 – 10:20",
+  "10:20 – 11:10",
+  "11:10 – 12:00",
+  "13:00 – 13:50",
+  "13:50 – 14:40",
+  "15:00 – 15:50",
+  "15:50 – 16:40",
+];
+export const BLOCOS_HORARIOS: (
+  | { tipo: "aula"; periodo: number; horario: string }
+  | { tipo: "intervalo" | "almoco"; horario: string }
+)[] = [
+  { tipo: "aula", periodo: 1, horario: "07:30 – 08:20" },
+  { tipo: "aula", periodo: 2, horario: "08:20 – 09:10" },
+  { tipo: "intervalo", horario: "09:10 – 09:30" },
+  { tipo: "aula", periodo: 3, horario: "09:30 – 10:20" },
+  { tipo: "aula", periodo: 4, horario: "10:20 – 11:10" },
+  { tipo: "aula", periodo: 5, horario: "11:10 – 12:00" },
+  { tipo: "almoco", horario: "12:00 – 13:00" },
+  { tipo: "aula", periodo: 6, horario: "13:00 – 13:50" },
+  { tipo: "aula", periodo: 7, horario: "13:50 – 14:40" },
+  { tipo: "intervalo", horario: "14:40 – 15:00" },
+  { tipo: "aula", periodo: 8, horario: "15:00 – 15:50" },
+  { tipo: "aula", periodo: 9, horario: "15:50 – 16:40" },
 ];
 export const DIAS: Dia[] = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
 export const PARENTESCOS = ["Mãe", "Pai", "Avó/Avô", "Tio/Tia", "Outro"];
-export const ADMIN_ONLY_ROUTES = ["/alunos", "/responsaveis", "/configuracoes"] as const;
+export const ADMIN_ONLY_ROUTES = ["/alunos", "/responsaveis", "/configuracoes", "/equipe"] as const;
+export const SECRETARIA_ROUTES = [
+  "/dashboard",
+  "/secretaria",
+  "/alunos",
+  "/responsaveis",
+  "/cardapio",
+  "/ocorrencias",
+  "/notificacoes",
+  "/perfil",
+] as const;
+export const FINANCEIRO_ROUTES = ["/dashboard", "/financeiro", "/perfil"] as const;
 export const STAFF_ROUTES = [
   "/dashboard",
   "/agenda",
@@ -96,6 +184,7 @@ export const STAFF_ROUTES = [
   "/comunicados",
   "/horarios",
   "/agendamento-ambientes",
+  "/agendamento-datashows",
   "/perfil",
 ] as const;
 export const MANAGEMENT_ROUTES = [
@@ -105,6 +194,9 @@ export const MANAGEMENT_ROUTES = [
   "/cardapio",
   "/horarios",
   "/agendamento-ambientes",
+  "/agendamento-datashows",
+  "/secretaria",
+  "/financeiro",
   "/perfil",
 ] as const;
 export const COORDINATOR_ROUTES = [
@@ -131,6 +223,34 @@ export const RESPONSAVEL_ALLOWED_ROUTES = [
   "/perfil",
 ] as const;
 
+export function isPerfilFinanceiro(perfil: string | undefined) {
+  return perfil === "Financeiro";
+}
+
+export function isPerfilSecretaria(perfil: string | undefined) {
+  return perfil === "Secretaria";
+}
+
+export function sincronizarVinculosResponsaveis(alunos: Aluno[], responsaveis: Responsavel[]) {
+  return alunos.map((aluno) => {
+    const emailAluno = aluno.responsavelEmail?.trim().toLowerCase();
+    const responsavel = responsaveis.find(
+      (item) =>
+        item.id === aluno.responsavelId ||
+        (emailAluno && item.email.trim().toLowerCase() === emailAluno),
+    );
+    return responsavel
+      ? {
+          ...aluno,
+          responsavelId: responsavel.id,
+          responsavel: responsavel.nome,
+          responsavelEmail: responsavel.email,
+          whatsapp: responsavel.whatsapp,
+        }
+      : aluno;
+  });
+}
+
 export function canAccessRoute(perfil: string | undefined, pathname: string) {
   if (perfil === "Administrador") return true;
   if (perfil === "Diretor") return MANAGEMENT_ROUTES.some((route) => route === pathname);
@@ -138,6 +258,12 @@ export function canAccessRoute(perfil: string | undefined, pathname: string) {
   if (perfil === "Aluno") return ALUNO_ALLOWED_ROUTES.some((route) => route === pathname);
   if (perfil === "Responsável") {
     return RESPONSAVEL_ALLOWED_ROUTES.some((route) => route === pathname);
+  }
+  if (isPerfilSecretaria(perfil)) {
+    return SECRETARIA_ROUTES.some((route) => route === pathname);
+  }
+  if (isPerfilFinanceiro(perfil)) {
+    return FINANCEIRO_ROUTES.some((route) => route === pathname);
   }
   if (perfil === "Professor" || perfil === "Diretor de Turma") {
     return TEACHER_ROUTES.some((route) => route === pathname);
@@ -154,6 +280,10 @@ const seed = {
   ocorrencias: [] as Ocorrencia[],
   aulasHorario: [] as AulaHorario[],
   reservasAmbientes: [] as ReservaAmbiente[],
+  reservasDatashows: [] as ReservaDatashow[],
+  funcionarios: [] as Funcionario[],
+  solicitacoesDocumentos: [] as SolicitacaoDocumento[],
+  lancamentosFinanceiros: [] as LancamentoFinanceiro[],
   comunicados: [] as Comunicado[],
   cardapio: {
     Segunda: {
@@ -202,6 +332,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (raw) {
           const saved = JSON.parse(raw) as Partial<State>;
           savedState = { ...seed, ...saved, user: null };
+          savedState.alunos = sincronizarVinculosResponsaveis(
+            savedState.alunos,
+            savedState.responsaveis,
+          );
           if (active) setState(savedState);
         }
       } catch (error) {
@@ -223,7 +357,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const localAccount = accountId
             ? savedState.accounts.find((account) => account.id === accountId)
             : undefined;
-          if (localAccount && !localAccount.mustChangePassword) {
+          if (localAccount && localAccount.ativo !== false && !localAccount.mustChangePassword) {
             setState((current) => ({
               ...current,
               user: {

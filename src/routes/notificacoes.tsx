@@ -26,8 +26,18 @@ function Notificacoes() {
   // Responsável só enxerga as ocorrências dos alunos vinculados a ele.
   const isResponsavel = user?.perfil === "Responsável";
   const emailConta = accounts.find((c) => c.id === user?.localAccountId)?.email;
-  const meuId = responsaveis.find((r) => r.email.toLowerCase() === emailConta)?.id;
-  const idsDosFilhos = new Set(alunos.filter((a) => a.responsavelId === meuId).map((a) => a.id));
+  const meuId = responsaveis.find(
+    (responsavel) => responsavel.email.toLowerCase() === emailConta?.toLowerCase(),
+  )?.id;
+  const idsDosFilhos = new Set(
+    alunos
+      .filter(
+        (aluno) =>
+          (meuId && aluno.responsavelId === meuId) ||
+          (emailConta && aluno.responsavelEmail?.toLowerCase() === emailConta.toLowerCase()),
+      )
+      .map((aluno) => aluno.id),
+  );
   const visiveis = isResponsavel
     ? ocorrencias.filter((o) => idsDosFilhos.has(o.alunoId))
     : ocorrencias;
@@ -62,7 +72,7 @@ function Notificacoes() {
                   {o.obs && ` — ${o.obs}`}
                 </p>
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  {fmtData(o.data)} · Enviado à Direção e responsável
+                  {fmtData(o.data)} · Disponível para a Direção e o responsável
                 </p>
               </div>
             </Card>

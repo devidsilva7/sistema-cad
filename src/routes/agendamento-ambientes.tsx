@@ -3,7 +3,7 @@ import { CalendarCheck2, Clock3 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, PageShell } from "@/components/AppShell";
-import { DIAS, uid, useStore } from "@/lib/store";
+import { BLOCOS_HORARIOS, DIAS, uid, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/agendamento-ambientes")({
   head: () => ({
@@ -24,15 +24,6 @@ const AMBIENTES = [
   "Laboratório de Física",
   "Laboratório de Química",
 ] as const;
-const PERIODOS = [
-  "07:00 – 07:50",
-  "07:50 – 08:40",
-  "08:40 – 09:30",
-  "09:50 – 10:40",
-  "10:40 – 11:30",
-  "11:30 – 12:20",
-];
-
 function AgendamentoAmbientes() {
   const { reservasAmbientes, set, user } = useStore();
   const [ambiente, setAmbiente] = useState<(typeof AMBIENTES)[number]>(AMBIENTES[0]);
@@ -99,20 +90,20 @@ function AgendamentoAmbientes() {
           {ambiente} · {dia}
         </h2>
         <div className="space-y-2">
-          {PERIODOS.map((horario, index) => {
-            const periodo = index + 1;
+          {BLOCOS_HORARIOS.filter((bloco) => bloco.tipo === "aula").map((bloco) => {
+            const periodo = bloco.periodo;
             const reserva = reservasAmbientes.find(
               (item) => item.ambiente === ambiente && item.dia === dia && item.periodo === periodo,
             );
             return (
               <div
-                key={horario}
+                key={periodo}
                 className="flex items-center justify-between gap-3 rounded-xl border border-border/70 p-3"
               >
                 <div className="flex items-center gap-2">
                   <Clock3 className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">
-                    {periodo}º período · {horario}
+                    {periodo}º período · {bloco.horario}
                   </span>
                 </div>
                 {reserva ? (

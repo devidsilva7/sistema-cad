@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   Bell,
+  Building2,
   CalendarDays,
   ClipboardList,
   Clock3,
@@ -11,6 +12,9 @@ import {
   LogOut,
   Megaphone,
   Menu,
+  Presentation,
+  ReceiptText,
+  UserRoundCog,
   Settings,
   User,
   UserRound,
@@ -39,7 +43,12 @@ const NAV = [
   { to: "/perfil", label: "Perfil", icon: User },
 ] as const;
 
-type MenuItem = { to: string; label: string; icon: LucideIcon };
+type MenuItem = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  search?: { perfil: "Secretaria" | "Financeiro" };
+};
 const MENU_SECTIONS: { title: string; items: MenuItem[] }[] = [
   {
     title: "Principal",
@@ -53,19 +62,34 @@ const MENU_SECTIONS: { title: string; items: MenuItem[] }[] = [
   {
     title: "Escola",
     items: [
+      { to: "/agendamento-ambientes", label: "Ambientes", icon: FlaskConical },
       { to: "/ocorrencias", label: "Ocorrências Rápidas", icon: ClipboardList },
+      { to: "/agendamento-datashows", label: "Agendamento dos datashows", icon: Presentation },
       { to: "/cardapio", label: "Cardápio Escolar", icon: UtensilsCrossed },
       { to: "/comunicados", label: "Comunicados Gerais", icon: Megaphone },
       { to: "/horarios", label: "Horários Escolares", icon: Clock3 },
-      { to: "/agendamento-ambientes", label: "Agendamento de Ambientes", icon: FlaskConical },
     ],
   },
   {
     title: "Administração",
     items: [
+      { to: "/secretaria", label: "Secretaria", icon: Building2 },
+      { to: "/financeiro", label: "Financeiro", icon: ReceiptText },
       { to: "/alunos", label: "Cadastrar Alunos", icon: GraduationCap },
       { to: "/professores", label: "Cadastrar Professores", icon: UserRound },
       { to: "/responsaveis", label: "Cadastrar Responsáveis", icon: HeartHandshake },
+      {
+        to: "/equipe",
+        label: "Cadastrar pessoal da Secretaria",
+        icon: UserRoundCog,
+        search: { perfil: "Secretaria" },
+      },
+      {
+        to: "/equipe",
+        label: "Cadastrar pessoal do Financeiro",
+        icon: UserRoundCog,
+        search: { perfil: "Financeiro" },
+      },
       { to: "/configuracoes", label: "Configurações", icon: Settings },
     ],
   },
@@ -153,10 +177,11 @@ export function MenuDrawer() {
                 {section.title}
               </p>
               <ul className="space-y-0.5">
-                {section.items.map(({ to, label, icon: Icon }) => (
-                  <li key={to}>
+                {section.items.map(({ to, label, icon: Icon, search }) => (
+                  <li key={`${to}-${search?.perfil ?? label}`}>
                     <Link
                       to={to}
+                      search={search}
                       className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-semibold text-foreground/80 transition hover:bg-accent"
                       activeProps={{
                         className: "!bg-primary !text-primary-foreground shadow-card",

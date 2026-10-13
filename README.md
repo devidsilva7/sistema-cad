@@ -37,3 +37,9 @@ SESSION_SECRET=um-segredo-aleatorio-com-no-minimo-32-caracteres
 Não use os valores de exemplo em produção, não compartilhe esses segredos e configure-os também como secrets no ambiente de hospedagem. Reinicie o servidor depois de alterar `.env.local`. Sem os dois segredos válidos, o login administrativo falha de forma explícita.
 
 Somente uma sessão administrativa válida pode abrir e salvar cadastros de alunos e professores. Os cadastros continuam armazenados no navegador (`localStorage`), não em um banco: portanto, não são compartilhados com outros dispositivos ou usuários e podem ser apagados pelo navegador. Contas individuais para alunos e professores e armazenamento centralizado exigem a etapa futura de banco de dados e autenticação desses perfis.
+
+## Módulos escolares
+
+A grade semanal usa nove períodos, das 07:30 às 16:40, com intervalos e almoço definidos em `src/lib/store.tsx`; as reservas de ambientes e datashows reutilizam esses mesmos períodos. O cadastro de turmas inclui Informática, Administração e Meio Ambiente do 1º ao 3º ano, mantendo também as turmas legadas de Enfermagem para preservar cadastros existentes. Professores podem ser associados a Linguagens, Matemática, Humanas ou Natureza.
+
+Alunos podem ser vinculados a responsáveis cadastrados. O vínculo é persistido pelo ID do responsável e dados legados são associados pelo e-mail durante o carregamento. Responsáveis consultam as ocorrências dos alunos vinculados em **Notificações**. Os painéis **Secretaria** e **Financeiro** apresentam resumos; o sistema ainda não oferece lançamentos ou processamento financeiro. Como todos esses dados permanecem no `localStorage` do navegador, os vínculos e ocorrências não são sincronizados entre dispositivos ou sessões de usuários diferentes.
