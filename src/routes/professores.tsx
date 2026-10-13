@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Search, Trash2, X } from "lucide-react";
+import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -12,7 +12,11 @@ import {
 } from "@/components/AppShell";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { emailEmUso, usernameEmUso } from "@/lib/cadastros";
-import { createLocalAccount, type LocalAccountProfile } from "@/lib/local-accounts";
+import {
+  createLocalAccount,
+  updateLocalAccountPassword,
+  type LocalAccountProfile,
+} from "@/lib/local-accounts";
 import { AREAS_CONHECIMENTO, TURMAS, uid, useStore, type AreaConhecimento } from "@/lib/store";
 
 export const Route = createFileRoute("/professores")({
@@ -63,6 +67,7 @@ function Professores() {
   const [salvando, setSalvando] = useState(false);
   const [acesso, setAcesso] = useState<Acesso | null>(null);
   const [q, setQ] = useState("");
+  const [editandoAccountId, setEditandoAccountId] = useState<string | null>(null);
 
   const professoresVisiveis = somenteDiretoresDeTurma
     ? professores.filter((professor) => professor.dt)
@@ -73,67 +78,141 @@ function Professores() {
   const acessosGestao = accounts.filter(
     (account) => account.perfil === "Diretor" || account.perfil === "Coordenador",
   );
+  const contaEmEdicao = accounts.find((account) => account.id === editandoAccountId);
   const toggle = (t: string) =>
     setTurmas((x) => (x.includes(t) ? x.filter((y) => y !== t) : [...x, t]));
+  const abrirEdicao = (accountId: string, professor?: (typeof professores)[number]) => {
+    const account =
+      accounts.find((item) => item.id === accountId) ??
+      accounts.find((item) => item.email.toLowerCase() === professor?.email.toLowerCase());
+    const perfil = account?.perfil ?? (professor?.dt ? "Diretor de Turma" : "Professor");
+    setEditandoAccountId(account?.id ?? professor?.id ?? accountId);
+    setPerfilConta(perfil);
+    setF({
+      nome: account?.nome ?? professor?.nome ?? "",
+      disciplina: professor?.disciplina ?? "",
+      area: professor?.area ?? AREAS_CONHECIMENTO[0],
+      email: account?.email ?? professor?.email ?? "",
+      username: account?.username ?? "",
+      senha: "",
+    });
+    setTurmas(professor?.turmas ?? []);
+    setAberto(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const salvar = async (e: React.FormEvent) => {
     e.preventDefault();
+    const contaEditada = accounts.find((account) => account.id === editandoAccountId);
+    const professorEditado =
+      professores.find((professor) => professor.id === editandoAccountId) ??
+      professores.find(
+        (professor) => professor.email.toLowerCase() === contaEditada?.email.toLowerCase(),
+      );
     const nome = f.nome.trim();
     const email = f.email.trim().toLowerCase();
     const disciplina = f.disciplina.trim();
     const area = f.area;
     const username = f.username.trim().toLowerCase();
     const perfilDocente = perfilConta === "Professor" || perfilConta === "Diretor de Turma";
-    if (!nome || !username || !email || !f.senha || (perfilDocente && (!disciplina || !area))) {
-      toast.error("Preencha nome, usuário, e-mail, senha e os dados docentes quando aplicável.");
+    if (
+      !nome ||
+      !username ||
+      !email ||
+      (!contaEditada && !f.senha) ||
+      (perfilDocente && (!disciplina || !area))
+    ) {
+      toast.error("Preencha nome, usuário, e-mail e os dados docentes quando aplicável.");
       return;
     }
-    if (f.senha.length < 8) {
+    if (f.senha && f.senha.length < 8) {
       toast.error("A senha precisa ter pelo menos 8 caracteres.");
       return;
     }
-    if (emailEmUso(store, email)) {
+    if (
+      emailEmUso(store, email, {
+        accountId: contaEditada?.id,
+        professorId: professorEditado?.id,
+      })
+    ) {
       toast.error("Esse e-mail já está em uso por outra conta.");
       return;
     }
-    if (!username || usernameEmUso(store, username)) {
+    if (usernameEmUso(store, username, contaEditada?.id)) {
       toast.error("Esse nome de usuário já está em uso. Informe outro.");
+      return;
+    }
+    if (f.senha && f.senha.length < 8) {
+      toast.error("A senha precisa ter pelo menos 8 caracteres.");
       return;
     }
     setSalvando(true);
     try {
       await requireAdminSession();
-      const conta = await createLocalAccount(email, username, nome, perfilConta, f.senha);
+      const conta = contaEditada
+        ? {
+            ...contaEditada,
+            email,
+            username,
+            nome,
+            perfil: perfilConta,
+          }
+        : await createLocalAccount(email, username, nome, perfilConta, f.senha);
+      const contaAtualizada =
+        contaEditada && f.senha ? await updateLocalAccountPassword(conta, f.senha) : conta;
+      const professorExistente =
+        professorEditado ??
+        professores.find(
+          (professor) => professor.email.toLowerCase() === contaEditada?.email.toLowerCase(),
+        );
       set((s) => ({
         ...s,
-        professores: perfilDocente
-          ? [
-              {
-                id: uid(),
-                nome,
-                email,
-                disciplina,
-                area,
-                turmas,
-                dt: perfilConta === "Diretor de Turma",
-              },
-              ...s.professores,
-            ]
-          : s.professores,
-        accounts: [...s.accounts, conta],
-      }));
-      setAcesso({
-        titulo: `Acesso de ${nome} criado`,
-        linhas: [
-          { label: "E-mail", value: conta.email },
-          { label: "Usuário", value: conta.username },
-          { label: "Senha definida", value: f.senha },
+        professores: [
+          ...(perfilDocente
+            ? [
+                {
+                  id: professorExistente?.id ?? uid(),
+                  nome,
+                  email,
+                  disciplina,
+                  area,
+                  turmas,
+                  dt: perfilConta === "Diretor de Turma",
+                },
+              ]
+            : []),
+          ...s.professores.filter(
+            (professor) =>
+              professor.id !== professorExistente?.id &&
+              professor.email.toLowerCase() !== contaEditada?.email.toLowerCase(),
+          ),
         ],
-      });
+        aulasHorario: s.aulasHorario.map((aula) =>
+          aula.professorEmail.toLowerCase() === contaEditada?.email.toLowerCase()
+            ? { ...aula, professorEmail: email }
+            : aula,
+        ),
+        accounts: contaEditada
+          ? s.accounts.map((account) => (account.id === conta.id ? contaAtualizada : account))
+          : [...s.accounts, contaAtualizada],
+      }));
+      if (!editandoAccountId) {
+        setAcesso({
+          titulo: `Acesso de ${nome} criado`,
+          linhas: [
+            { label: "E-mail", value: conta.email },
+            { label: "Usuário", value: conta.username },
+            { label: "Senha definida", value: f.senha },
+          ],
+        });
+      } else {
+        toast.success("Dados atualizados com sucesso!");
+      }
       setF(vazio);
       setTurmas([]);
       setPerfilConta("Professor");
       setAberto(false);
+      setEditandoAccountId(null);
     } catch (error) {
       console.error("Falha ao cadastrar professor.", error);
       toast.error("Sessão administrativa inválida. Entre novamente como administrador.");
@@ -195,10 +274,17 @@ function Professores() {
         aberto ? (
           <Card>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-bold">Novo acesso escolar</h2>
+              <h2 className="text-base font-bold">
+                {editandoAccountId ? "Editar acesso escolar" : "Novo acesso escolar"}
+              </h2>
               <button
                 type="button"
-                onClick={() => setAberto(false)}
+                onClick={() => {
+                  setAberto(false);
+                  setEditandoAccountId(null);
+                  setF(vazio);
+                  setTurmas([]);
+                }}
                 aria-label="Cancelar"
                 className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent"
               >
@@ -279,7 +365,7 @@ function Professores() {
                   />
                 </Field>
                 <Field
-                  label="Senha"
+                  label={contaEmEdicao ? "Nova senha (opcional)" : "Senha"}
                   hint="Mínimo de 8 caracteres. O usuário poderá entrar com esta senha."
                 >
                   <input
@@ -289,7 +375,7 @@ function Professores() {
                     minLength={8}
                     value={f.senha}
                     onChange={(e) => setF({ ...f, senha: e.target.value })}
-                    required
+                    required={!contaEmEdicao}
                   />
                 </Field>
               </div>
@@ -315,14 +401,38 @@ function Professores() {
                 </Field>
               )}
               <PrimaryButton type="submit" disabled={salvando}>
-                {salvando ? "Salvando..." : "Criar acesso"}
+                {salvando
+                  ? "Salvando..."
+                  : editandoAccountId
+                    ? "Salvar alterações"
+                    : "Criar acesso"}
               </PrimaryButton>
+              {editandoAccountId && (
+                <button
+                  type="button"
+                  className="w-full rounded-xl border px-4 py-3 text-sm font-semibold"
+                  onClick={() => {
+                    setAberto(false);
+                    setEditandoAccountId(null);
+                    setF(vazio);
+                    setTurmas([]);
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
             </form>
           </Card>
         ) : (
           <button
             type="button"
-            onClick={() => setAberto(true)}
+            onClick={() => {
+              setEditandoAccountId(null);
+              setF(vazio);
+              setTurmas([]);
+              setPerfilConta("Professor");
+              setAberto(true);
+            }}
             className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary/30 bg-primary-soft/60 py-4 font-semibold text-primary transition hover:bg-primary-soft"
           >
             <Plus className="h-5 w-5" />
@@ -369,14 +479,24 @@ function Professores() {
               {p.area && ` · ${p.area}`} · {p.turmas.join(", ") || "Sem turmas"}
             </p>
             {podeCadastrar && (
-              <button
-                type="button"
-                onClick={() => void remover(p.id)}
-                className="mt-3 flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" />
-                Remover professor
-              </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => abrirEdicao(p.email, p)}
+                  className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void remover(p.id)}
+                  className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Remover professor
+                </button>
+              </div>
             )}
           </Card>
         ))}
@@ -392,21 +512,34 @@ function Professores() {
             </Card>
           )}
           {acessosGestao.map((account) => (
-            <Card key={account.id} className="flex items-center justify-between gap-3 !p-3">
+            <Card
+              key={account.id}
+              className="flex flex-wrap items-center justify-between gap-3 !p-3"
+            >
               <div className="min-w-0">
                 <p className="truncate font-semibold">{account.nome}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {account.perfil} · {account.username} · {account.email}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => void removerAcessoGestao(account.id)}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" />
-                Remover
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => abrirEdicao(account.id)}
+                  className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void removerAcessoGestao(account.id)}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Remover
+                </button>
+              </div>
             </Card>
           ))}
         </section>

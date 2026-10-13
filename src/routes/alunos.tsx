@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Phone, Search, Trash2, UserRoundX } from "lucide-react";
+import { Pencil, Phone, Search, Trash2, UserRoundX } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AcessoCriado, Card, Field, Label, PageShell, PrimaryButton } from "@/components/AppShell";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { emailEmUso, soDigitos, usernameEmUso } from "@/lib/cadastros";
-import { createLocalAccount } from "@/lib/local-accounts";
+import { createLocalAccount, updateLocalAccountPassword } from "@/lib/local-accounts";
 import { TURMAS, uid, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/alunos")({
@@ -52,6 +52,7 @@ function Alunos() {
       ? alunos
       : alunos.filter((aluno) => professorAtual?.turmas.includes(aluno.turma));
   const [f, setF] = useState(empty);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [acesso, setAcesso] = useState<AcessoAluno | null>(null);
   const lista = alunosVisiveis.filter((a) =>
@@ -64,42 +65,54 @@ function Alunos() {
       !f.nome.trim() ||
       !f.email.trim() ||
       !f.matricula.trim() ||
-      !f.username.trim() ||
-      !f.senha
+      (!editandoId && (!f.username.trim() || !f.senha))
     ) {
-      toast.error("Preencha nome, usuário, e-mail, senha e matrícula.");
+      toast.error("Preencha nome, e-mail, matrícula e os dados de acesso obrigatórios.");
       return;
     }
     const normalizedEmail = f.email.trim().toLowerCase();
     const normalizedUsername = f.username.trim().toLowerCase();
     const normalizedResponsavelEmail = f.responsavelEmail.trim().toLowerCase();
     const normalizedMatricula = f.matricula.trim().toLowerCase();
-    if (!normalizedMatricula || !normalizedUsername) {
+    if (!normalizedMatricula || (!editandoId && !normalizedUsername)) {
       toast.error("Informe uma matrícula e um nome de usuário válidos.");
       return;
     }
-    if (f.senha.length < 8) {
+    if (f.senha && f.senha.length < 8) {
       toast.error("A senha precisa ter pelo menos 8 caracteres.");
       return;
     }
     try {
       await requireAdminSession();
-      if (alunos.some((aluno) => aluno.matricula.trim().toLowerCase() === normalizedMatricula)) {
+      const alunoEditado = alunos.find((aluno) => aluno.id === editandoId);
+      const contaEditada = accounts.find(
+        (account) => account.email.toLowerCase() === alunoEditado?.email.toLowerCase(),
+      );
+      if (
+        alunos.some(
+          (aluno) =>
+            aluno.id !== editandoId && aluno.matricula.trim().toLowerCase() === normalizedMatricula,
+        )
+      ) {
         toast.error("Já existe um aluno cadastrado com essa matrícula.");
         return;
       }
       if (
-        emailEmUso(store, normalizedEmail) ||
+        emailEmUso(store, normalizedEmail, {
+          accountId: contaEditada?.id,
+          alunoId: editandoId ?? undefined,
+        }) ||
         alunos.some(
           (aluno) =>
-            aluno.email?.trim().toLowerCase() === normalizedEmail ||
-            aluno.responsavelEmail?.trim().toLowerCase() === normalizedEmail,
+            aluno.id !== editandoId &&
+            (aluno.email?.trim().toLowerCase() === normalizedEmail ||
+              aluno.responsavelEmail?.trim().toLowerCase() === normalizedEmail),
         )
       ) {
         toast.error("Já existe uma conta cadastrada com esse e-mail.");
         return;
       }
-      if (usernameEmUso(store, normalizedUsername)) {
+      if (normalizedUsername && usernameEmUso(store, normalizedUsername, contaEditada?.id)) {
         toast.error("Esse nome de usuário já está em uso.");
         return;
       }
@@ -108,15 +121,63 @@ function Alunos() {
         normalizedResponsavelEmail &&
         (normalizedResponsavelEmail === normalizedEmail ||
           accounts.some(
-            (account) => account.email.trim().toLowerCase() === normalizedResponsavelEmail,
+            (account) =>
+              account.id !== contaEditada?.id &&
+              account.email.trim().toLowerCase() === normalizedResponsavelEmail,
           ) ||
           alunos.some(
             (aluno) =>
-              aluno.email?.trim().toLowerCase() === normalizedResponsavelEmail ||
-              aluno.responsavelEmail?.trim().toLowerCase() === normalizedResponsavelEmail,
+              aluno.id !== editandoId &&
+              (aluno.email?.trim().toLowerCase() === normalizedResponsavelEmail ||
+                aluno.responsavelEmail?.trim().toLowerCase() === normalizedResponsavelEmail),
           ))
       ) {
         toast.error("O e-mail do responsável já está sendo usado por outra pessoa.");
+        return;
+      }
+      const dadosAluno = {
+        nome: f.nome.trim(),
+        email: normalizedEmail,
+        matricula: f.matricula.trim(),
+        turma: f.turma,
+        responsavelId: f.responsavelId || undefined,
+        responsavel: f.responsavelId
+          ? (responsaveis.find((responsavel) => responsavel.id === f.responsavelId)?.nome ?? "")
+          : f.responsavel.trim(),
+        responsavelEmail: f.responsavelId
+          ? (responsaveis.find((responsavel) => responsavel.id === f.responsavelId)?.email ?? "")
+          : normalizedResponsavelEmail,
+        whatsapp: f.responsavelId
+          ? (responsaveis.find((responsavel) => responsavel.id === f.responsavelId)?.whatsapp ?? "")
+          : f.whatsapp,
+      };
+      if (alunoEditado) {
+        const contaAtualizada = contaEditada
+          ? {
+              ...contaEditada,
+              email: normalizedEmail,
+              username: normalizedUsername || contaEditada.username,
+              nome: dadosAluno.nome,
+            }
+          : undefined;
+        const contaComSenha =
+          contaAtualizada && f.senha
+            ? await updateLocalAccountPassword(contaAtualizada, f.senha)
+            : contaAtualizada;
+        set((state) => ({
+          ...state,
+          alunos: state.alunos.map((aluno) =>
+            aluno.id === alunoEditado.id ? { ...aluno, ...dadosAluno } : aluno,
+          ),
+          accounts: contaComSenha
+            ? state.accounts.map((account) =>
+                account.id === contaComSenha.id ? contaComSenha : account,
+              )
+            : state.accounts,
+        }));
+        setEditandoId(null);
+        setF(empty);
+        toast.success("Dados do aluno atualizados com sucesso!");
         return;
       }
       const id = uid();
@@ -127,22 +188,12 @@ function Alunos() {
         "Aluno",
         f.senha,
       );
-      const dadosAluno = {
-        nome: f.nome.trim(),
-        turma: f.turma,
-        responsavelId: f.responsavelId || undefined,
-        responsavel: f.responsavel.trim(),
-        responsavelEmail: normalizedResponsavelEmail,
-        whatsapp: f.whatsapp,
-      };
       set((s) => ({
         ...s,
         alunos: [
           {
             id,
             ...dadosAluno,
-            email: normalizedEmail,
-            matricula: f.matricula.trim(),
           },
           ...s.alunos,
         ],
@@ -237,6 +288,7 @@ function Alunos() {
       {isAdmin && (
         <Card>
           <form onSubmit={salvar} className="space-y-3">
+            {editandoId && <h2 className="font-bold">Editar dados do aluno</h2>}
             <div>
               <Label>Nome</Label>
               <input
@@ -271,7 +323,7 @@ function Alunos() {
                 />
               </div>
               <div>
-                <Label>Senha para entrar</Label>
+                <Label>{editandoId ? "Nova senha (opcional)" : "Senha para entrar"}</Label>
                 <input
                   className="field"
                   type="password"
@@ -279,7 +331,7 @@ function Alunos() {
                   minLength={8}
                   value={f.senha}
                   onChange={(e) => setF({ ...f, senha: e.target.value })}
-                  required
+                  required={!editandoId}
                 />
               </div>
               <div>
@@ -356,7 +408,23 @@ function Alunos() {
                 </div>
               </>
             )}
-            <PrimaryButton type="submit">Cadastrar aluno</PrimaryButton>
+            <div className="flex gap-2">
+              <PrimaryButton type="submit">
+                {editandoId ? "Salvar alterações" : "Cadastrar aluno"}
+              </PrimaryButton>
+              {editandoId && (
+                <button
+                  type="button"
+                  className="rounded-xl border px-4 text-sm font-semibold"
+                  onClick={() => {
+                    setEditandoId(null);
+                    setF(empty);
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
           </form>
         </Card>
       )}
@@ -418,6 +486,32 @@ function Alunos() {
             </p>
             {isAdmin && (
               <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const account = accounts.find(
+                      (item) => item.email.toLowerCase() === a.email.toLowerCase(),
+                    );
+                    setEditandoId(a.id);
+                    setF({
+                      nome: a.nome,
+                      email: a.email,
+                      username: account?.username ?? "",
+                      senha: "",
+                      turma: a.turma,
+                      matricula: a.matricula,
+                      responsavelId: a.responsavelId ?? "",
+                      responsavel: a.responsavel,
+                      responsavelEmail: a.responsavelEmail ?? "",
+                      whatsapp: a.whatsapp,
+                    });
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-semibold"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </button>
                 {(a.responsavel || a.responsavelEmail || a.whatsapp) && (
                   <button
                     type="button"

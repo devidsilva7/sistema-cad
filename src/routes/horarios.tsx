@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarClock, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, Field, PageShell, PrimaryButton } from "@/components/AppShell";
@@ -30,6 +30,7 @@ function Horarios() {
   const [professorEmail, setProfessorEmail] = useState("");
   const [turma, setTurma] = useState(TURMAS[0]!);
   const [disciplina, setDisciplina] = useState("");
+  const [editandoId, setEditandoId] = useState<string | null>(null);
 
   const adicionarAula = () => {
     if (!professorEmail || !disciplina.trim()) {
@@ -38,13 +39,21 @@ function Horarios() {
     }
     set((state) => ({
       ...state,
-      aulasHorario: [
-        ...state.aulasHorario,
-        { id: uid(), dia, periodo, turma, disciplina: disciplina.trim(), professorEmail },
-      ],
+      aulasHorario: editandoId
+        ? state.aulasHorario.map((aula) =>
+            aula.id === editandoId
+              ? { ...aula, dia, periodo, turma, disciplina: disciplina.trim(), professorEmail }
+              : aula,
+          )
+        : [
+            ...state.aulasHorario,
+            { id: uid(), dia, periodo, turma, disciplina: disciplina.trim(), professorEmail },
+          ],
     }));
+    const editado = Boolean(editandoId);
+    setEditandoId(null);
     setDisciplina("");
-    toast.success("Aula adicionada à grade semanal.");
+    toast.success(editado ? "Dados atualizados com sucesso!" : "Aula adicionada à grade semanal.");
   };
 
   const professorPorEmail = (email: string) =>
@@ -61,7 +70,9 @@ function Horarios() {
     >
       {isAdmin && professores.length > 0 && (
         <Card className="mb-4 space-y-3">
-          <h2 className="font-bold">Adicionar aula à grade</h2>
+          <h2 className="font-bold">
+            {editandoId ? "Editar aula da grade" : "Adicionar aula à grade"}
+          </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Dia">
               <select
@@ -120,12 +131,26 @@ function Horarios() {
               />
             </Field>
           </div>
-          <PrimaryButton onClick={adicionarAula}>
-            <span className="inline-flex items-center justify-center gap-2">
-              <Plus className="h-4 w-4" />
-              Adicionar aula
-            </span>
-          </PrimaryButton>
+          <div className="flex gap-2">
+            <PrimaryButton onClick={adicionarAula}>
+              <span className="inline-flex items-center justify-center gap-2">
+                {!editandoId && <Plus className="h-4 w-4" />}
+                {editandoId ? "Salvar alterações" : "Adicionar aula"}
+              </span>
+            </PrimaryButton>
+            {editandoId && (
+              <button
+                type="button"
+                className="rounded-xl border px-4 text-sm font-semibold"
+                onClick={() => {
+                  setEditandoId(null);
+                  setDisciplina("");
+                }}
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
         </Card>
       )}
 
@@ -179,21 +204,39 @@ function Horarios() {
                                 </span>
                               </p>
                               {isAdmin && (
-                                <button
-                                  type="button"
-                                  aria-label={`Remover aula de ${aula.disciplina}`}
-                                  onClick={() =>
-                                    set((state) => ({
-                                      ...state,
-                                      aulasHorario: state.aulasHorario.filter(
-                                        (item) => item.id !== aula.id,
-                                      ),
-                                    }))
-                                  }
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                                <div className="flex shrink-0 gap-2">
+                                  <button
+                                    type="button"
+                                    aria-label={`Editar aula de ${aula.disciplina}`}
+                                    onClick={() => {
+                                      setEditandoId(aula.id);
+                                      setDia(aula.dia);
+                                      setPeriodo(aula.periodo);
+                                      setTurma(aula.turma);
+                                      setDisciplina(aula.disciplina);
+                                      setProfessorEmail(aula.professorEmail);
+                                      window.scrollTo({ top: 0, behavior: "smooth" });
+                                    }}
+                                    className="text-primary"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    aria-label={`Remover aula de ${aula.disciplina}`}
+                                    onClick={() =>
+                                      set((state) => ({
+                                        ...state,
+                                        aulasHorario: state.aulasHorario.filter(
+                                          (item) => item.id !== aula.id,
+                                        ),
+                                      }))
+                                    }
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
                               )}
                             </div>
                           );

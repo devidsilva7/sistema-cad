@@ -13,6 +13,9 @@ describe("school structure", () => {
         expect(TURMAS).toContain(`${year} ${course}`);
       }
     }
+    expect(TURMAS).not.toContain("1º Enfermagem");
+    expect(TURMAS).not.toContain("2º Enfermagem");
+    expect(TURMAS).not.toContain("3º Enfermagem");
     expect(AREAS_CONHECIMENTO).toEqual(["Linguagens", "Matemática", "Humanas", "Natureza"]);
   });
 

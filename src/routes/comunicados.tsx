@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell } from "lucide-react";
+import { Bell, Pencil } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, Label, PageShell, PrimaryButton } from "@/components/AppShell";
@@ -42,23 +42,41 @@ function Comunicados() {
   const [titulo, setTitulo] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [publico, setPublico] = useState(PUBLICOS[0]!);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
 
   const enviar = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!titulo || !mensagem) {
+    if (!titulo.trim() || !mensagem.trim()) {
       toast.error("Preencha título e mensagem.");
       return;
     }
     set((s) => ({
       ...s,
-      comunicados: [
-        { id: uid(), titulo, mensagem, publico, data: new Date().toISOString() },
-        ...s.comunicados,
-      ],
+      comunicados: editandoId
+        ? s.comunicados.map((item) =>
+            item.id === editandoId
+              ? { ...item, titulo: titulo.trim(), mensagem: mensagem.trim(), publico }
+              : item,
+          )
+        : [
+            {
+              id: uid(),
+              titulo: titulo.trim(),
+              mensagem: mensagem.trim(),
+              publico,
+              data: new Date().toISOString(),
+            },
+            ...s.comunicados,
+          ],
     }));
+    const editado = Boolean(editandoId);
+    setEditandoId(null);
     setTitulo("");
     setMensagem("");
-    toast.success("Comunicado enviado", { description: `Público: ${publico}` });
+    setPublico(PUBLICOS[0]!);
+    toast.success(editado ? "Dados atualizados com sucesso!" : "Comunicado enviado", {
+      description: `Público: ${publico}`,
+    });
   };
 
   return (
@@ -66,6 +84,7 @@ function Comunicados() {
       {!somenteLeitura && (
         <Card>
           <form onSubmit={enviar} className="space-y-3">
+            {editandoId && <h2 className="font-bold">Editar comunicado</h2>}
             <div>
               <Label>Título</Label>
               <input className="field" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
@@ -90,23 +109,57 @@ function Comunicados() {
                 ))}
               </select>
             </div>
-            <PrimaryButton type="submit">Enviar comunicado</PrimaryButton>
+            <div className="flex gap-2">
+              <PrimaryButton type="submit">
+                {editandoId ? "Salvar alterações" : "Enviar comunicado"}
+              </PrimaryButton>
+              {editandoId && (
+                <button
+                  type="button"
+                  className="rounded-xl border px-4 text-sm font-semibold"
+                  onClick={() => {
+                    setEditandoId(null);
+                    setTitulo("");
+                    setMensagem("");
+                    setPublico(PUBLICOS[0]!);
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
           </form>
         </Card>
       )}
       <div className="mt-5 space-y-2">
         {comunicadosVisiveis.map((c) => (
-          <Card key={c.id} className="flex gap-3 !p-3">
+          <Card key={c.id} className="flex items-start gap-3 !p-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">
               <Bell className="h-4 w-4" />
             </span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="font-semibold">{c.titulo}</p>
               <p className="text-sm text-muted-foreground">{c.mensagem}</p>
               <p className="mt-1 text-[11px] font-medium text-gold-foreground">
                 {c.publico} · {fmtData(c.data)}
               </p>
             </div>
+            {!somenteLeitura && (
+              <button
+                type="button"
+                aria-label={`Editar comunicado ${c.titulo}`}
+                onClick={() => {
+                  setEditandoId(c.id);
+                  setTitulo(c.titulo);
+                  setMensagem(c.mensagem);
+                  setPublico(c.publico);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-accent"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            )}
           </Card>
         ))}
       </div>

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MessageCircle, Plus, Search, Trash2, X } from "lucide-react";
+import { MessageCircle, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/components/AppShell";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { emailEmUso, mascaraTelefone, soDigitos, usernameEmUso } from "@/lib/cadastros";
-import { createLocalAccount } from "@/lib/local-accounts";
+import { createLocalAccount, updateLocalAccountPassword } from "@/lib/local-accounts";
 import { PARENTESCOS, uid, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/responsaveis")({
@@ -63,6 +63,7 @@ function Responsaveis() {
           emailsResponsaveis.has(responsavel.email.toLowerCase()),
       );
   const [f, setF] = useState(vazio);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [aberto, setAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [acesso, setAcesso] = useState<Acesso | null>(null);
@@ -77,11 +78,11 @@ function Responsaveis() {
     const nome = f.nome.trim();
     const email = f.email.trim().toLowerCase();
     const username = f.username.trim().toLowerCase();
-    if (!nome || !email || !username || !f.senha) {
-      toast.error("Preencha nome, usuário, e-mail e senha.");
+    if (!nome || !email || !username || (!editandoId && !f.senha)) {
+      toast.error("Preencha nome, usuário e e-mail.");
       return;
     }
-    if (f.senha.length < 8) {
+    if (f.senha && f.senha.length < 8) {
       toast.error("A senha precisa ter pelo menos 8 caracteres.");
       return;
     }
@@ -89,17 +90,65 @@ function Responsaveis() {
       toast.error("Informe um WhatsApp válido, com DDD.");
       return;
     }
-    if (emailEmUso(store, email)) {
-      toast.error("Esse e-mail já está em uso por outra conta.");
-      return;
-    }
-    if (!username || usernameEmUso(store, username)) {
-      toast.error("Esse nome de usuário já está em uso. Informe outro.");
-      return;
-    }
     setSalvando(true);
     try {
       await requireAdminSession();
+      const responsavelEditado = responsaveis.find((item) => item.id === editandoId);
+      const contaEditada = store.accounts.find(
+        (account) => account.email.toLowerCase() === responsavelEditado?.email.toLowerCase(),
+      );
+      if (
+        emailEmUso(store, email, {
+          accountId: contaEditada?.id,
+          responsavelId: editandoId ?? undefined,
+        })
+      ) {
+        toast.error("Esse e-mail já está em uso por outra conta.");
+        return;
+      }
+      if (usernameEmUso(store, username, contaEditada?.id)) {
+        toast.error("Esse nome de usuário já está em uso. Informe outro.");
+        return;
+      }
+      if (responsavelEditado) {
+        const contaAtualizada = contaEditada
+          ? { ...contaEditada, email, username, nome }
+          : undefined;
+        const contaComSenha =
+          contaAtualizada && f.senha
+            ? await updateLocalAccountPassword(contaAtualizada, f.senha)
+            : contaAtualizada;
+        set((state) => ({
+          ...state,
+          responsaveis: state.responsaveis.map((item) =>
+            item.id === responsavelEditado.id
+              ? { ...item, nome, email, parentesco: f.parentesco, whatsapp: f.whatsapp }
+              : item,
+          ),
+          alunos: state.alunos.map((aluno) =>
+            aluno.responsavelId === responsavelEditado.id ||
+            aluno.responsavelEmail?.toLowerCase() === responsavelEditado.email.toLowerCase()
+              ? {
+                  ...aluno,
+                  responsavelId: responsavelEditado.id,
+                  responsavel: nome,
+                  responsavelEmail: email,
+                  whatsapp: f.whatsapp,
+                }
+              : aluno,
+          ),
+          accounts: contaComSenha
+            ? state.accounts.map((account) =>
+                account.id === contaComSenha.id ? contaComSenha : account,
+              )
+            : state.accounts,
+        }));
+        setF(vazio);
+        setEditandoId(null);
+        setAberto(false);
+        toast.success("Dados do responsável atualizados com sucesso!");
+        return;
+      }
       const conta = await createLocalAccount(email, username, nome, "Responsável", f.senha);
       set((s) => ({
         ...s,
@@ -178,10 +227,16 @@ function Responsaveis() {
         aberto ? (
           <Card>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-bold">Novo responsável</h2>
+              <h2 className="text-base font-bold">
+                {editandoId ? "Editar responsável" : "Novo responsável"}
+              </h2>
               <button
                 type="button"
-                onClick={() => setAberto(false)}
+                onClick={() => {
+                  setAberto(false);
+                  setEditandoId(null);
+                  setF(vazio);
+                }}
                 aria-label="Cancelar"
                 className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent"
               >
@@ -241,7 +296,10 @@ function Responsaveis() {
                     required
                   />
                 </Field>
-                <Field label="Senha" hint="Mínimo de 8 caracteres.">
+                <Field
+                  label={editandoId ? "Nova senha (opcional)" : "Senha"}
+                  hint="Mínimo de 8 caracteres."
+                >
                   <input
                     className="field"
                     type="password"
@@ -249,7 +307,7 @@ function Responsaveis() {
                     minLength={8}
                     value={f.senha}
                     onChange={(e) => setF({ ...f, senha: e.target.value })}
-                    required
+                    required={!editandoId}
                   />
                 </Field>
               </div>
@@ -258,14 +316,35 @@ function Responsaveis() {
                 responsável ao aluno na aba <b>Alunos</b>.
               </p>
               <PrimaryButton type="submit" disabled={salvando}>
-                {salvando ? "Salvando..." : "Cadastrar responsável"}
+                {salvando
+                  ? "Salvando..."
+                  : editandoId
+                    ? "Salvar alterações"
+                    : "Cadastrar responsável"}
               </PrimaryButton>
+              {editandoId && (
+                <button
+                  type="button"
+                  className="w-full rounded-xl border px-4 py-3 text-sm font-semibold"
+                  onClick={() => {
+                    setAberto(false);
+                    setEditandoId(null);
+                    setF(vazio);
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
             </form>
           </Card>
         ) : (
           <button
             type="button"
-            onClick={() => setAberto(true)}
+            onClick={() => {
+              setEditandoId(null);
+              setF(vazio);
+              setAberto(true);
+            }}
             className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary/30 bg-primary-soft/60 py-4 font-semibold text-primary transition hover:bg-primary-soft"
           >
             <Plus className="h-5 w-5" />
@@ -333,6 +412,56 @@ function Responsaveis() {
                     <MessageCircle className="h-4 w-4" />
                     {r.whatsapp}
                   </a>
+                )}
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const account = store.accounts.find(
+                        (item) => item.email.toLowerCase() === r.email.toLowerCase(),
+                      );
+                      setEditandoId(r.id);
+                      setF({
+                        nome: r.nome,
+                        parentesco: r.parentesco,
+                        whatsapp: r.whatsapp,
+                        email: r.email,
+                        username: account?.username ?? "",
+                        senha: "",
+                      });
+                      setAberto(true);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Editar
+                  </button>
+                )}
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const account = store.accounts.find(
+                        (item) => item.email.toLowerCase() === r.email.toLowerCase(),
+                      );
+                      setEditandoId(r.id);
+                      setF({
+                        nome: r.nome,
+                        parentesco: r.parentesco,
+                        whatsapp: r.whatsapp,
+                        email: r.email,
+                        username: account?.username ?? "",
+                        senha: "",
+                      });
+                      setAberto(true);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Editar
+                  </button>
                 )}
                 {isAdmin && (
                   <button

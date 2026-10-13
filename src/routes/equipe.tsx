@@ -1,18 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Trash2, UserRoundCog } from "lucide-react";
+import { Pencil, Plus, Trash2, UserRoundCog } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, Field, PageShell, PrimaryButton } from "@/components/AppShell";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { emailEmUso, mascaraTelefone, soDigitos, usernameEmUso } from "@/lib/cadastros";
-import { createLocalAccount } from "@/lib/local-accounts";
+import { createLocalAccount, updateLocalAccountPassword } from "@/lib/local-accounts";
 import { uid, useStore, type Funcionario } from "@/lib/store";
 
 export const Route = createFileRoute("/equipe")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    perfil:
-      search.perfil === "Secretaria" || search.perfil === "Financeiro" ? search.perfil : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const perfil = search["perfil"];
+    return {
+      perfil: perfil === "Secretaria" || perfil === "Financeiro" ? perfil : undefined,
+    };
+  },
   head: () => ({
     meta: [
       { title: "Equipe e acessos — Gestão Escolar LAF" },
@@ -32,6 +34,8 @@ const inicial = {
   ativo: true,
 };
 const PERFIS_EQUIPE: Funcionario["perfil"][] = ["Secretaria", "Financeiro"];
+const isPerfilEquipe = (value: string | undefined): value is Funcionario["perfil"] =>
+  value === "Secretaria" || value === "Financeiro";
 
 function Equipe() {
   const store = useStore();
@@ -39,9 +43,10 @@ function Equipe() {
   const { perfil: perfilDaRota } = Route.useSearch();
   const [perfilSelecionado, setPerfilSelecionado] = useState<Funcionario["perfil"] | null>(null);
   const [form, setForm] = useState(inicial);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [aberto, setAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const perfilAtivo = perfilSelecionado ?? perfilDaRota ?? null;
+  const perfilAtivo = perfilSelecionado ?? (isPerfilEquipe(perfilDaRota) ? perfilDaRota : null);
   const equipesVisiveis = funcionarios.filter(
     (item) => !perfilAtivo || item.perfil === perfilAtivo,
   );
@@ -56,15 +61,26 @@ function Equipe() {
       toast.error("Informe nome, e-mail, telefone e um CPF válido com 11 dígitos.");
       return;
     }
-    if (form.senha.length < 8) {
+    if (!editandoId && form.senha.length < 8) {
       toast.error("A senha inicial precisa ter pelo menos 8 caracteres.");
       return;
     }
-    if (emailEmUso(store, email) || usernameEmUso(store, username)) {
+    if (form.senha && form.senha.length < 8) {
+      toast.error("A senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+    const funcionarioEditado = funcionarios.find((item) => item.id === editandoId);
+    const contaEditada = store.accounts.find(
+      (account) => account.id === funcionarioEditado?.accountId,
+    );
+    if (
+      emailEmUso(store, email, { accountId: contaEditada?.id }) ||
+      usernameEmUso(store, username, contaEditada?.id)
+    ) {
       toast.error("O e-mail ou nome de usuário já está em uso.");
       return;
     }
-    if (funcionarios.some((item) => soDigitos(item.cpf) === cpf)) {
+    if (funcionarios.some((item) => item.id !== editandoId && soDigitos(item.cpf) === cpf)) {
       toast.error("Já existe um funcionário cadastrado com esse CPF.");
       return;
     }
@@ -72,17 +88,16 @@ function Equipe() {
     setSalvando(true);
     try {
       await requireAdminSession();
-      const contaCriada = await createLocalAccount(
-        email,
-        username,
-        nome,
-        perfilAtivo,
-        form.senha,
-        true,
-      );
-      const conta = { ...contaCriada, ativo: form.ativo };
+      const contaBase = contaEditada
+        ? { ...contaEditada, email, username, nome, perfil: perfilAtivo, ativo: form.ativo }
+        : await createLocalAccount(email, username, nome, perfilAtivo, form.senha, true);
+      const contaAtualizada =
+        contaEditada && form.senha
+          ? await updateLocalAccountPassword(contaBase, form.senha)
+          : contaBase;
+      const conta = { ...contaAtualizada, ativo: form.ativo };
       const funcionario: Funcionario = {
-        id: uid(),
+        id: funcionarioEditado?.id ?? uid(),
         accountId: conta.id,
         nome,
         email,
@@ -94,13 +109,23 @@ function Equipe() {
       };
       set((current) => ({
         ...current,
-        funcionarios: [funcionario, ...current.funcionarios],
-        accounts: [...current.accounts, conta],
+        funcionarios: [
+          funcionario,
+          ...current.funcionarios.filter((item) => item.id !== funcionarioEditado?.id),
+        ],
+        accounts: contaEditada
+          ? current.accounts.map((item) => (item.id === conta.id ? conta : item))
+          : [...current.accounts, conta],
       }));
       setForm(inicial);
       setAberto(false);
       setPerfilSelecionado(null);
-      toast.success(`Acesso de ${nome} criado. A senha deverá ser alterada no primeiro login.`);
+      setEditandoId(null);
+      toast.success(
+        funcionarioEditado
+          ? "Dados atualizados com sucesso!"
+          : `Acesso de ${nome} criado. A senha deverá ser alterada no primeiro login.`,
+      );
     } catch (error) {
       console.error("Falha ao cadastrar funcionário.", error);
       toast.error("Não foi possível cadastrar. Confira a sessão administrativa.");
@@ -173,6 +198,7 @@ function Equipe() {
                   onClick={() => {
                     setPerfilSelecionado(perfil);
                     setForm(inicial);
+                    setEditandoId(null);
                     setAberto(true);
                   }}
                   className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary-soft/60 py-3 text-sm font-semibold text-primary"
@@ -203,8 +229,10 @@ function Equipe() {
           <button
             type="button"
             onClick={() => {
+              if (!isPerfilEquipe(perfilDaRota)) return;
               setPerfilSelecionado(perfilDaRota);
               setForm(inicial);
+              setEditandoId(null);
               setAberto(true);
             }}
             className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary-soft/60 py-3 text-sm font-semibold text-primary"
@@ -219,11 +247,28 @@ function Equipe() {
           <form onSubmit={salvar} className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-bold">
-                {perfilAtivo === "Secretaria"
-                  ? "Cadastrar pessoal da Secretaria"
-                  : "Cadastrar pessoal do Financeiro"}
+                {editandoId
+                  ? "Editar cadastro de funcionário"
+                  : perfilAtivo === "Secretaria"
+                    ? "Cadastrar pessoal da Secretaria"
+                    : "Cadastrar pessoal do Financeiro"}
               </h2>
             </div>
+            {editandoId && (
+              <Field label="Equipe">
+                <select
+                  className="field"
+                  value={perfilAtivo ?? ""}
+                  onChange={(event) =>
+                    setPerfilSelecionado(event.target.value as Funcionario["perfil"])
+                  }
+                >
+                  {PERFIS_EQUIPE.map((perfil) => (
+                    <option key={perfil}>{perfil}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
             <Field label="Nome completo">
               <input
                 className="field"
@@ -273,7 +318,7 @@ function Equipe() {
                 />
               </Field>
               <Field
-                label="Senha inicial"
+                label={editandoId ? "Nova senha (opcional)" : "Senha inicial"}
                 hint="Mínimo de 8 caracteres; será solicitada a troca no primeiro login."
               >
                 <input
@@ -283,7 +328,7 @@ function Equipe() {
                   minLength={8}
                   value={form.senha}
                   onChange={(e) => setForm({ ...form, senha: e.target.value })}
-                  required
+                  required={!editandoId}
                 />
               </Field>
               <Field label="Status">
@@ -301,9 +346,11 @@ function Equipe() {
               <PrimaryButton type="submit" disabled={salvando}>
                 {salvando
                   ? "Salvando..."
-                  : perfilAtivo === "Secretaria"
-                    ? "Cadastrar pessoal da Secretaria"
-                    : "Cadastrar pessoal do Financeiro"}
+                  : editandoId
+                    ? "Salvar alterações"
+                    : perfilAtivo === "Secretaria"
+                      ? "Cadastrar pessoal da Secretaria"
+                      : "Cadastrar pessoal do Financeiro"}
               </PrimaryButton>
               <button
                 type="button"
@@ -311,6 +358,8 @@ function Equipe() {
                 onClick={() => {
                   setAberto(false);
                   setPerfilSelecionado(null);
+                  setEditandoId(null);
+                  setForm(inicial);
                 }}
               >
                 Cancelar
@@ -352,6 +401,29 @@ function Equipe() {
               </div>
             </div>
             <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const account = store.accounts.find((item) => item.id === funcionario.accountId);
+                  setEditandoId(funcionario.id);
+                  setPerfilSelecionado(funcionario.perfil);
+                  setForm({
+                    nome: funcionario.nome,
+                    email: funcionario.email,
+                    telefone: funcionario.telefone,
+                    cpf: funcionario.cpf,
+                    username: account?.username ?? "",
+                    senha: "",
+                    ativo: funcionario.ativo,
+                  });
+                  setAberto(true);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                aria-label={`Editar ${funcionario.nome}`}
+                className="grid h-9 w-9 place-items-center rounded-full hover:bg-accent"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
               <button
                 type="button"
                 onClick={() => void alternarStatus(funcionario)}

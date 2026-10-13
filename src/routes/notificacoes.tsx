@@ -23,8 +23,8 @@ export const Route = createFileRoute("/notificacoes")({
 
 function Notificacoes() {
   const { ocorrencias, alunos, accounts, responsaveis, user } = useStore();
-  // Responsável só enxerga as ocorrências dos alunos vinculados a ele.
   const isResponsavel = user?.perfil === "Responsável";
+  const isAluno = user?.perfil === "Aluno";
   const emailConta = accounts.find((c) => c.id === user?.localAccountId)?.email;
   const meuId = responsaveis.find(
     (responsavel) => responsavel.email.toLowerCase() === emailConta?.toLowerCase(),
@@ -38,13 +38,24 @@ function Notificacoes() {
       )
       .map((aluno) => aluno.id),
   );
+  const meuAlunoId = isAluno
+    ? alunos.find((aluno) => aluno.email.toLowerCase() === emailConta?.toLowerCase())?.id
+    : undefined;
   const visiveis = isResponsavel
     ? ocorrencias.filter((o) => idsDosFilhos.has(o.alunoId))
-    : ocorrencias;
+    : isAluno
+      ? ocorrencias.filter((o) => o.alunoId === meuAlunoId)
+      : ocorrencias;
   return (
     <PageShell
-      title="Notificações"
-      subtitle={isResponsavel ? "Ocorrências dos seus filhos" : "Ocorrências enviadas"}
+      title={isResponsavel || isAluno ? "Acompanhamento Escolar" : "Notificações"}
+      subtitle={
+        isResponsavel
+          ? "Ocorrências dos seus filhos"
+          : isAluno
+            ? "Seus registros escolares"
+            : "Ocorrências enviadas"
+      }
     >
       <div className="space-y-2">
         {visiveis.length === 0 && (

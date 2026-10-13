@@ -18,11 +18,11 @@ describe("role-based route access", () => {
     expect(canAccessRoute("Aluno", "/agenda")).toBe(true);
     expect(canAccessRoute("Aluno", "/cardapio")).toBe(true);
     expect(canAccessRoute("Aluno", "/comunicados")).toBe(true);
+    expect(canAccessRoute("Aluno", "/notificacoes")).toBe(true);
     expect(canAccessRoute("Aluno", "/perfil")).toBe(true);
     expect(canAccessRoute("Aluno", "/alunos")).toBe(false);
     expect(canAccessRoute("Aluno", "/professores")).toBe(false);
     expect(canAccessRoute("Aluno", "/ocorrencias")).toBe(false);
-    expect(canAccessRoute("Aluno", "/notificacoes")).toBe(false);
     expect(canAccessRoute("Aluno", "/configuracoes")).toBe(false);
   });
 

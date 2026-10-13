@@ -125,7 +125,13 @@ export function MenuDrawer() {
 
   const sections = MENU_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => canAccessRoute(user?.perfil, item.to)),
+    items: section.items
+      .filter((item) => canAccessRoute(user?.perfil, item.to))
+      .map((item) =>
+        (user?.perfil === "Aluno" || user?.perfil === "Responsável") && item.to === "/notificacoes"
+          ? { ...item, label: "Acompanhamento Escolar" }
+          : item,
+      ),
   })).filter((section) => section.items.length > 0);
 
   return (
@@ -155,7 +161,9 @@ export function MenuDrawer() {
           />
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gold">
-              Gestão Escolar
+              {user?.perfil === "Aluno" || user?.perfil === "Responsável"
+                ? "Acompanhamento Escolar"
+                : "Gestão Escolar"}
             </p>
             <p className="text-sm font-bold leading-tight">EEEP Luizete Albano de Freitas</p>
           </div>
@@ -181,7 +189,7 @@ export function MenuDrawer() {
                   <li key={`${to}-${search?.perfil ?? label}`}>
                     <Link
                       to={to}
-                      search={search}
+                      {...(search ? { search } : {})}
                       className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-semibold text-foreground/80 transition hover:bg-accent"
                       activeProps={{
                         className: "!bg-primary !text-primary-foreground shadow-card",
@@ -225,7 +233,11 @@ export function MenuDrawer() {
 
 export function BottomBar() {
   const { user } = useStore();
-  const items = NAV.filter(({ to }) => canAccessRoute(user?.perfil, to));
+  const items = NAV.filter(({ to }) => canAccessRoute(user?.perfil, to)).map((item) =>
+    (user?.perfil === "Aluno" || user?.perfil === "Responsável") && item.to === "/notificacoes"
+      ? { ...item, label: "Acompanhamento Escolar" }
+      : item,
+  );
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-card/90 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_-22px_oklch(0.25_0.05_155_/_40%)] backdrop-blur-xl md:bottom-auto md:top-0 md:border-b md:border-t-0 md:pb-0 md:shadow-[0_8px_30px_-22px_oklch(0.25_0.05_155_/_40%)]">
       <div

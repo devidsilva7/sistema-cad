@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarCheck2, Clock3 } from "lucide-react";
+import { CalendarCheck2, Clock3, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Card, PageShell } from "@/components/AppShell";
-import { BLOCOS_HORARIOS, DIAS, uid, useStore } from "@/lib/store";
+import { Card, Label, PageShell } from "@/components/AppShell";
+import { AMBIENTES, BLOCOS_HORARIOS, DIAS, uid, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/agendamento-datashows")({
   head: () => ({
@@ -16,33 +16,101 @@ export const Route = createFileRoute("/agendamento-datashows")({
 });
 
 function AgendamentoDatashows() {
-  const { reservasDatashows, set, user } = useStore();
+  const { reservasDatashows, set, user, accounts, professores } = useStore();
   const [dia, setDia] = useState<(typeof DIAS)[number]>(DIAS[0]!);
+  const [ambiente, setAmbiente] = useState<(typeof AMBIENTES)[number]>(AMBIENTES[0]);
+  const emailUsuario = accounts.find((account) => account.id === user?.localAccountId)?.email ?? "";
+  const professorAtual = professores.find(
+    (professor) => professor.email.toLowerCase() === emailUsuario.toLowerCase(),
+  );
+  const opcoesProfessor = professores.some((professor) => professor.nome === user?.nome)
+    ? professores
+    : [...professores, {
+        id: "usuario-atual",
+        nome: user?.nome ?? "Usuário",
+        email: emailUsuario,
+        disciplina: "",
+        turmas: [],
+        dt: false,
+      }];
+  const [professorResponsavel, setProfessorResponsavel] = useState(
+    () => professorAtual?.nome ?? user?.nome ?? "",
+  );
 
   const solicitar = (periodo: number) => {
     if (reservasDatashows.some((reserva) => reserva.dia === dia && reserva.periodo === periodo)) {
       toast.error("Esse datashow já está reservado nesse horário.");
       return;
     }
+    const professor = opcoesProfessor.find((item) => item.nome === professorResponsavel);
     set((state) => ({
       ...state,
       reservasDatashows: [
         ...state.reservasDatashows,
         {
           id: uid(),
+          ambiente,
           dia,
           periodo,
           solicitante: user?.nome ?? "Usuário",
-          solicitanteEmail:
-            state.accounts.find((account) => account.id === user?.localAccountId)?.email ?? "",
+          solicitanteEmail: emailUsuario,
+          professorResponsavel,
+          professorEmail: professor?.email ?? "",
         },
       ],
     }));
     toast.success("Agendamento do datashow registrado.");
   };
 
+  const cancelar = (id: string) => {
+    set((state) => ({
+      ...state,
+      reservasDatashows: state.reservasDatashows.filter((reserva) => reserva.id !== id),
+    }));
+    toast.success("Reserva do datashow cancelada.");
+  };
+
+  const podeCancelar = (reserva: (typeof reservasDatashows)[number]) =>
+    user?.perfil === "Administrador" ||
+    Boolean(
+      emailUsuario &&
+        [reserva.solicitanteEmail, reserva.professorEmail].some(
+          (email) => email?.toLowerCase() === emailUsuario.toLowerCase(),
+        ),
+    );
+
   return (
     <PageShell title="Agendamento dos datashows" subtitle="Disponibilidade semanal do equipamento">
+      <Card className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label>Local/Laboratório</Label>
+          <select
+            className="field"
+            value={ambiente}
+            onChange={(event) => setAmbiente(event.target.value as (typeof AMBIENTES)[number])}
+          >
+            {AMBIENTES.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label>Professor responsável</Label>
+          <select
+            className="field"
+            value={professorResponsavel}
+            onChange={(event) => setProfessorResponsavel(event.target.value)}
+          >
+            {opcoesProfessor.map((professor) => (
+              <option key={professor.id} value={professor.nome}>
+                {professor.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+      </Card>
       <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-2xl bg-card p-1.5 shadow-card">
         {DIAS.map((item) => (
           <button
@@ -76,19 +144,32 @@ function AgendamentoDatashows() {
                   </span>
                 </div>
                 {reserva ? (
-                  <span className="text-right text-xs font-semibold text-destructive">
-                    Reservado
-                    <br />
-                    {reserva.solicitante}
-                  </span>
+                  <div className="flex flex-wrap items-center justify-end gap-2 text-right">
+                    <span className="text-xs font-semibold text-destructive">
+                      Reservado · {reserva.ambiente ?? "Local não informado"}
+                      <br />
+                      {reserva.professorResponsavel ?? reserva.solicitante}
+                    </span>
+                    {podeCancelar(reserva) && (
+                      <button
+                        type="button"
+                        onClick={() => cancelar(reserva.id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-destructive/30 px-2.5 py-2 text-xs font-bold text-destructive hover:bg-destructive/10"
+                      >
+                        <X className="h-4 w-4" />
+                        Cancelar Reserva
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <button
                     type="button"
                     onClick={() => solicitar(bloco.periodo)}
+                    disabled={!professorResponsavel}
                     className="inline-flex items-center gap-1 rounded-lg bg-primary-soft px-3 py-2 text-xs font-bold text-primary hover:bg-primary hover:text-primary-foreground"
                   >
                     <CalendarCheck2 className="h-4 w-4" />
-                    Reservar
+                    Agendar
                   </button>
                 )}
               </div>

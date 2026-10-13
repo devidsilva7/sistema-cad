@@ -8,23 +8,33 @@ type Dados = {
   responsaveis: Responsavel[];
 };
 
+type Exclusions = {
+  accountId?: string | undefined;
+  alunoId?: string | undefined;
+  professorId?: string | undefined;
+  responsavelId?: string | undefined;
+};
+
 const norm = (valor: string | undefined) => (valor ?? "").trim().toLowerCase();
 
 /** Retorna true se o e-mail já pertence a alguma conta ou cadastro. */
-export function emailEmUso(dados: Dados, email: string) {
+export function emailEmUso(dados: Dados, email: string, excluir: Exclusions = {}) {
   const alvo = norm(email);
   if (!alvo) return false;
   return (
-    dados.accounts.some((a) => norm(a.email) === alvo) ||
-    dados.alunos.some((a) => norm(a.email) === alvo) ||
-    dados.professores.some((p) => norm(p.email) === alvo) ||
-    dados.responsaveis.some((r) => norm(r.email) === alvo)
+    dados.accounts.some((a) => a.id !== excluir.accountId && norm(a.email) === alvo) ||
+    dados.alunos.some((a) => a.id !== excluir.alunoId && norm(a.email) === alvo) ||
+    dados.professores.some((p) => p.id !== excluir.professorId && norm(p.email) === alvo) ||
+    dados.responsaveis.some((r) => r.id !== excluir.responsavelId && norm(r.email) === alvo)
   );
 }
 
-export function usernameEmUso(dados: Dados, username: string) {
+export function usernameEmUso(dados: Dados, username: string, excluirAccountId?: string) {
   const alvo = norm(username);
-  return alvo === "admin" || dados.accounts.some((a) => norm(a.username) === alvo);
+  return (
+    alvo === "admin" ||
+    dados.accounts.some((a) => a.id !== excluirAccountId && norm(a.username) === alvo)
+  );
 }
 
 /** Sugere um nome de usuário a partir do e-mail (parte antes do @). */

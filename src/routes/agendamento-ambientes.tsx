@@ -3,7 +3,7 @@ import { CalendarCheck2, Clock3 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, PageShell } from "@/components/AppShell";
-import { BLOCOS_HORARIOS, DIAS, uid, useStore } from "@/lib/store";
+import { AMBIENTES, BLOCOS_HORARIOS, DIAS, uid, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/agendamento-ambientes")({
   head: () => ({
@@ -18,12 +18,6 @@ export const Route = createFileRoute("/agendamento-ambientes")({
   component: AgendamentoAmbientes,
 });
 
-const AMBIENTES = [
-  "Laboratório de Informática",
-  "Laboratório de Biologia",
-  "Laboratório de Física",
-  "Laboratório de Química",
-] as const;
 function AgendamentoAmbientes() {
   const { reservasAmbientes, set, user } = useStore();
   const [ambiente, setAmbiente] = useState<(typeof AMBIENTES)[number]>(AMBIENTES[0]);

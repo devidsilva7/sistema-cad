@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Pencil } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -45,6 +46,7 @@ function Financeiro() {
   });
   const [relatorio, setRelatorio] = useState<TipoRelatorio | null>(null);
   const [reciboId, setReciboId] = useState("");
+  const [editandoId, setEditandoId] = useState<string | null>(null);
 
   const resumo = useMemo(() => {
     const recebidos = lancamentosFinanceiros
@@ -99,7 +101,7 @@ function Financeiro() {
     [lancamentosFinanceiros],
   );
 
-  const adicionarLancamento = (event: React.FormEvent) => {
+  const salvarLancamento = (event: React.FormEvent) => {
     event.preventDefault();
     const valor = Number(form.valor.replace(",", "."));
     if (!form.descricao.trim() || !Number.isFinite(valor) || valor <= 0 || !form.competencia) {
@@ -107,21 +109,34 @@ function Financeiro() {
       return;
     }
     const movimento: LancamentoFinanceiro = {
-      id: uid(),
+      id: editandoId ?? uid(),
       tipo: form.tipo,
       descricao: form.descricao.trim(),
       valor,
       competencia: form.competencia,
       status: form.status,
       ...(form.alunoId ? { alunoId: form.alunoId } : {}),
-      criadaEm: new Date().toISOString(),
+      criadaEm:
+        lancamentosFinanceiros.find((item) => item.id === editandoId)?.criadaEm ??
+        new Date().toISOString(),
     };
     set((state) => ({
       ...state,
-      lancamentosFinanceiros: [movimento, ...state.lancamentosFinanceiros],
+      lancamentosFinanceiros: editandoId
+        ? state.lancamentosFinanceiros.map((item) => (item.id === editandoId ? movimento : item))
+        : [movimento, ...state.lancamentosFinanceiros],
     }));
-    setForm({ ...form, descricao: "", valor: "", alunoId: "" });
-    toast.success(`${form.tipo} registrada.`);
+    const editado = Boolean(editandoId);
+    setEditandoId(null);
+    setForm({
+      tipo: "Receita",
+      descricao: "",
+      valor: "",
+      competencia: mesAtual(),
+      status: "Pendente",
+      alunoId: "",
+    });
+    toast.success(editado ? "Dados atualizados com sucesso!" : `${form.tipo} registrada.`);
   };
 
   const mudarStatus = (id: string, valor: string) => {
@@ -216,8 +231,10 @@ function Financeiro() {
       </div>
 
       <Card className="mt-4">
-        <h2 className="mb-3 font-bold">Novo lançamento ou mensalidade/taxa</h2>
-        <form onSubmit={adicionarLancamento} className="grid gap-3 sm:grid-cols-2">
+        <h2 className="mb-3 font-bold">
+          {editandoId ? "Editar lançamento" : "Novo lançamento ou mensalidade/taxa"}
+        </h2>
+        <form onSubmit={salvarLancamento} className="grid gap-3 sm:grid-cols-2">
           <Field label="Tipo">
             <select
               className="field"
@@ -289,8 +306,29 @@ function Financeiro() {
               </select>
             </Field>
           )}
-          <div className="sm:col-span-2">
-            <PrimaryButton type="submit">Registrar lançamento</PrimaryButton>
+          <div className="sm:col-span-2 flex gap-2">
+            <PrimaryButton type="submit">
+              {editandoId ? "Salvar alterações" : "Registrar lançamento"}
+            </PrimaryButton>
+            {editandoId && (
+              <button
+                type="button"
+                className="rounded-xl border px-4 text-sm font-semibold"
+                onClick={() => {
+                  setEditandoId(null);
+                  setForm({
+                    tipo: "Receita",
+                    descricao: "",
+                    valor: "",
+                    competencia: mesAtual(),
+                    status: "Pendente",
+                    alunoId: "",
+                  });
+                }}
+              >
+                Cancelar
+              </button>
+            )}
           </div>
         </form>
       </Card>
@@ -327,6 +365,25 @@ function Financeiro() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label={`Editar lançamento ${item.descricao}`}
+                  onClick={() => {
+                    setEditandoId(item.id);
+                    setForm({
+                      tipo: item.tipo,
+                      descricao: item.descricao,
+                      valor: String(item.valor),
+                      competencia: item.competencia,
+                      status: item.status,
+                      alunoId: item.alunoId ?? "",
+                    });
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="grid h-9 w-9 place-items-center rounded-full hover:bg-accent"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
                 <select
                   className="field !w-auto"
                   aria-label={`Status de ${item.descricao}`}
