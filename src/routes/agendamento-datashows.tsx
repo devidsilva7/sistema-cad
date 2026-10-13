@@ -16,10 +16,10 @@ export const Route = createFileRoute("/agendamento-datashows")({
 });
 
 const LABORATORIOS_DATASHOW = [
-  "Laboratório de Linguagens",
-  "Laboratório de Ciências da Natureza",
-  "Laboratório de Humanas",
-  "Laboratório de Matemática",
+  " Linguagens",
+  " Ciências da Natureza",
+  " Humanas",
+  " Matemática",
 ] as const;
 
 function AgendamentoDatashows() {
