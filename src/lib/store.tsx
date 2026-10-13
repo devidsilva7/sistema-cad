@@ -57,6 +57,8 @@ export type ReservaAmbiente = {
   periodo: number;
   solicitante: string;
   solicitanteEmail: string;
+  professorResponsavel?: string;
+  professorEmail?: string;
 };
 export type ReservaDatashow = {
   id: string;
@@ -134,12 +136,6 @@ export const TURMAS = [
   "2º Meio Ambiente",
   "3º Meio Ambiente",
 ];
-export const AMBIENTES = [
-  "Laboratório de Informática",
-  "Laboratório de Biologia",
-  "Laboratório de Física",
-  "Laboratório de Química",
-] as const;
 export const AREAS_CONHECIMENTO = ["Linguagens", "Matemática", "Humanas", "Natureza"] as const;
 export const PERIODOS_AULA = [
   "07:30 – 08:20",

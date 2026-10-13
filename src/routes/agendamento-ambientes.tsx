@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarCheck2, Clock3 } from "lucide-react";
+import { CalendarCheck2, Clock3, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Card, PageShell } from "@/components/AppShell";
-import { AMBIENTES, BLOCOS_HORARIOS, DIAS, uid, useStore } from "@/lib/store";
+import { Card, Label, PageShell } from "@/components/AppShell";
+import { BLOCOS_HORARIOS, DIAS, uid, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/agendamento-ambientes")({
   head: () => ({
@@ -18,12 +18,46 @@ export const Route = createFileRoute("/agendamento-ambientes")({
   component: AgendamentoAmbientes,
 });
 
+const AMBIENTES = [
+  "Laboratório de Informática",
+  "Laboratório de Biologia",
+  "Laboratório de Física",
+  "Laboratório de Química",
+] as const;
+
 function AgendamentoAmbientes() {
-  const { reservasAmbientes, set, user } = useStore();
+  const { reservasAmbientes, set, user, accounts, professores } = useStore();
   const [ambiente, setAmbiente] = useState<(typeof AMBIENTES)[number]>(AMBIENTES[0]);
   const [dia, setDia] = useState<(typeof DIAS)[number]>(DIAS[0]!);
+  const emailUsuario =
+    accounts.find((account) => account.id === user?.localAccountId)?.email?.toLowerCase() ?? "";
+  const professorAtual = professores.find(
+    (professor) => professor.email.toLowerCase() === emailUsuario,
+  );
+  const opcoesProfessor =
+    professorAtual || !user
+      ? professores
+      : [
+          ...professores,
+          {
+            id: "usuario-atual",
+            nome: user.nome,
+            email: emailUsuario,
+            disciplina: "",
+            turmas: [],
+            dt: false,
+          },
+        ];
+  const [professorResponsavel, setProfessorResponsavel] = useState(
+    () => professorAtual?.id ?? (user ? "usuario-atual" : (professores[0]?.id ?? "")),
+  );
 
   const solicitar = (periodo: number) => {
+    const professor = opcoesProfessor.find((item) => item.id === professorResponsavel);
+    if (!professor) {
+      toast.error("Selecione o professor responsável pelo agendamento.");
+      return;
+    }
     const ocupada = reservasAmbientes.some(
       (reserva) =>
         reserva.ambiente === ambiente && reserva.dia === dia && reserva.periodo === periodo,
@@ -44,11 +78,30 @@ function AgendamentoAmbientes() {
           solicitante: user?.nome ?? "Usuário",
           solicitanteEmail:
             state.accounts.find((account) => account.id === user?.localAccountId)?.email ?? "",
+          professorResponsavel: professor.nome,
+          professorEmail: professor.email,
         },
       ],
     }));
     toast.success("Solicitação de agendamento registrada.");
   };
+
+  const cancelar = (id: string) => {
+    set((state) => ({
+      ...state,
+      reservasAmbientes: state.reservasAmbientes.filter((reserva) => reserva.id !== id),
+    }));
+    toast.success("Agendamento do ambiente cancelado.");
+  };
+
+  const podeCancelar = (reserva: (typeof reservasAmbientes)[number]) =>
+    user?.perfil === "Administrador" ||
+    Boolean(
+      emailUsuario &&
+      [reserva.solicitanteEmail, reserva.professorEmail].some(
+        (email) => email?.toLowerCase() === emailUsuario,
+      ),
+    );
 
   return (
     <PageShell title="Agendamento de Ambientes" subtitle="Disponibilidade semanal dos laboratórios">
@@ -65,6 +118,21 @@ function AgendamentoAmbientes() {
           </button>
         ))}
       </div>
+      <Card className="mt-3">
+        <Label>Professor responsável</Label>
+        <select
+          className="field"
+          value={professorResponsavel}
+          onChange={(event) => setProfessorResponsavel(event.target.value)}
+          disabled={opcoesProfessor.length === 0}
+        >
+          {opcoesProfessor.map((professor) => (
+            <option key={professor.id} value={professor.id}>
+              {professor.nome}
+            </option>
+          ))}
+        </select>
+      </Card>
       <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-2xl bg-card p-1.5 shadow-card">
         {DIAS.map((item) => (
           <button
@@ -101,15 +169,28 @@ function AgendamentoAmbientes() {
                   </span>
                 </div>
                 {reserva ? (
-                  <span className="text-right text-xs font-semibold text-destructive">
-                    Ocupado
-                    <br />
-                    {reserva.solicitante}
-                  </span>
+                  <div className="flex flex-wrap items-center justify-end gap-2 text-right">
+                    <span className="text-xs font-semibold text-destructive">
+                      Ocupado
+                      <br />
+                      {reserva.professorResponsavel ?? reserva.solicitante}
+                    </span>
+                    {podeCancelar(reserva) && (
+                      <button
+                        type="button"
+                        onClick={() => cancelar(reserva.id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-destructive/30 px-2.5 py-2 text-xs font-bold text-destructive hover:bg-destructive/10"
+                      >
+                        <X className="h-4 w-4" />
+                        Cancelar Agendamento
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <button
                     type="button"
                     onClick={() => solicitar(periodo)}
+                    disabled={!professorResponsavel}
                     className="inline-flex items-center gap-1 rounded-lg bg-primary-soft px-3 py-2 text-xs font-bold text-primary hover:bg-primary hover:text-primary-foreground"
                   >
                     <CalendarCheck2 className="h-4 w-4" />

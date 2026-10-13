@@ -3,7 +3,7 @@ import { CalendarCheck2, Clock3, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, Label, PageShell } from "@/components/AppShell";
-import { AMBIENTES, BLOCOS_HORARIOS, DIAS, uid, useStore } from "@/lib/store";
+import { BLOCOS_HORARIOS, DIAS, uid, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/agendamento-datashows")({
   head: () => ({
@@ -15,26 +15,39 @@ export const Route = createFileRoute("/agendamento-datashows")({
   component: AgendamentoDatashows,
 });
 
+const LABORATORIOS_DATASHOW = [
+  "Laboratório de Linguagens",
+  "Laboratório de Ciências da Natureza",
+  "Laboratório de Humanas",
+  "Laboratório de Matemática",
+] as const;
+
 function AgendamentoDatashows() {
   const { reservasDatashows, set, user, accounts, professores } = useStore();
   const [dia, setDia] = useState<(typeof DIAS)[number]>(DIAS[0]!);
-  const [ambiente, setAmbiente] = useState<(typeof AMBIENTES)[number]>(AMBIENTES[0]);
+  const [ambiente, setAmbiente] = useState<(typeof LABORATORIOS_DATASHOW)[number]>(
+    LABORATORIOS_DATASHOW[0],
+  );
   const emailUsuario = accounts.find((account) => account.id === user?.localAccountId)?.email ?? "";
   const professorAtual = professores.find(
     (professor) => professor.email.toLowerCase() === emailUsuario.toLowerCase(),
   );
-  const opcoesProfessor = professores.some((professor) => professor.nome === user?.nome)
-    ? professores
-    : [...professores, {
-        id: "usuario-atual",
-        nome: user?.nome ?? "Usuário",
-        email: emailUsuario,
-        disciplina: "",
-        turmas: [],
-        dt: false,
-      }];
+  const opcoesProfessor =
+    professorAtual || !user
+      ? professores
+      : [
+          ...professores,
+          {
+            id: "usuario-atual",
+            nome: user.nome,
+            email: emailUsuario,
+            disciplina: "",
+            turmas: [],
+            dt: false,
+          },
+        ];
   const [professorResponsavel, setProfessorResponsavel] = useState(
-    () => professorAtual?.nome ?? user?.nome ?? "",
+    () => professorAtual?.id ?? (user ? "usuario-atual" : (professores[0]?.id ?? "")),
   );
 
   const solicitar = (periodo: number) => {
@@ -42,7 +55,11 @@ function AgendamentoDatashows() {
       toast.error("Esse datashow já está reservado nesse horário.");
       return;
     }
-    const professor = opcoesProfessor.find((item) => item.nome === professorResponsavel);
+    const professor = opcoesProfessor.find((item) => item.id === professorResponsavel);
+    if (!professor) {
+      toast.error("Selecione o professor responsável pelo agendamento.");
+      return;
+    }
     set((state) => ({
       ...state,
       reservasDatashows: [
@@ -54,8 +71,8 @@ function AgendamentoDatashows() {
           periodo,
           solicitante: user?.nome ?? "Usuário",
           solicitanteEmail: emailUsuario,
-          professorResponsavel,
-          professorEmail: professor?.email ?? "",
+          professorResponsavel: professor.nome,
+          professorEmail: professor.email,
         },
       ],
     }));
@@ -74,42 +91,40 @@ function AgendamentoDatashows() {
     user?.perfil === "Administrador" ||
     Boolean(
       emailUsuario &&
-        [reserva.solicitanteEmail, reserva.professorEmail].some(
-          (email) => email?.toLowerCase() === emailUsuario.toLowerCase(),
-        ),
+      [reserva.solicitanteEmail, reserva.professorEmail].some(
+        (email) => email?.toLowerCase() === emailUsuario.toLowerCase(),
+      ),
     );
 
   return (
     <PageShell title="Agendamento dos datashows" subtitle="Disponibilidade semanal do equipamento">
-      <Card className="mt-3 grid gap-3 sm:grid-cols-2">
-        <div>
-          <Label>Local/Laboratório</Label>
-          <select
-            className="field"
-            value={ambiente}
-            onChange={(event) => setAmbiente(event.target.value as (typeof AMBIENTES)[number])}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {LABORATORIOS_DATASHOW.map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => setAmbiente(item)}
+            aria-pressed={ambiente === item}
+            className={`min-h-16 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition ${ambiente === item ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground"}`}
           >
-            {AMBIENTES.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label>Professor responsável</Label>
-          <select
-            className="field"
-            value={professorResponsavel}
-            onChange={(event) => setProfessorResponsavel(event.target.value)}
-          >
-            {opcoesProfessor.map((professor) => (
-              <option key={professor.id} value={professor.nome}>
-                {professor.nome}
-              </option>
-            ))}
-          </select>
-        </div>
+            {item}
+          </button>
+        ))}
+      </div>
+      <Card className="mt-3">
+        <Label>Professor responsável</Label>
+        <select
+          className="field"
+          value={professorResponsavel}
+          onChange={(event) => setProfessorResponsavel(event.target.value)}
+          disabled={opcoesProfessor.length === 0}
+        >
+          {opcoesProfessor.map((professor) => (
+            <option key={professor.id} value={professor.id}>
+              {professor.nome}
+            </option>
+          ))}
+        </select>
       </Card>
       <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-2xl bg-card p-1.5 shadow-card">
         {DIAS.map((item) => (
@@ -157,7 +172,7 @@ function AgendamentoDatashows() {
                         className="inline-flex items-center gap-1 rounded-lg border border-destructive/30 px-2.5 py-2 text-xs font-bold text-destructive hover:bg-destructive/10"
                       >
                         <X className="h-4 w-4" />
-                        Cancelar Reserva
+                        Cancelar Agendamento
                       </button>
                     )}
                   </div>
